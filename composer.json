@@ -1,0 +1,30 @@
+{
+    "name": "hds-solutions/parallel",
+    "description": "Parallel implementation",
+    "type": "library",
+    "license": "GPL-3.0",
+    "authors": [
+        {
+            "name": "Hermann D. Schimpf",
+            "email": "hschimpf@hds-solutions.net"
+        }
+    ],
+    "suggest": {
+        "ext-parallel": "Allows to run multi-threaded processes"
+    },
+    "require": {
+        "php": ">=8.0"
+    },
+    "require-dev": {
+        "roave/security-advisories": "dev-latest"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": {
+            "*": "dist"
+        },
+        "sort-packages": true
+    }
+}
