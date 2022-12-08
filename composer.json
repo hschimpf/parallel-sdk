@@ -1,6 +1,6 @@
 {
-    "name": "hds-solutions/parallel",
-    "description": "Parallel implementation",
+    "name": "hds-solutions/parallel-sdk",
+    "description": "SDK to implement parallel php extension",
     "type": "library",
     "license": "GPL-3.0",
     "authors": [
@@ -13,20 +13,31 @@
         "ext-parallel": "Allows to run multi-threaded processes"
     },
     "require": {
-        "php": ">=8.0"
+        "php": ">=8.0",
+        "illuminate/collections": "^9.0",
+        "symfony/console": "^6.0"
     },
     "autoload": {
+        "files": [
+            "src/helpers.php"
+        ],
         "psr-4": {
-            "HDSSolutions\\": "src/"
+            "HDSSolutions\\Parallel\\": "src/"
         }
     },
     "require-dev": {
-        "roave/security-advisories": "dev-latest"
+        "roave/security-advisories": "dev-latest",
+        "phpunit/phpunit": "^9.5"
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\": "tests/"
+            "HDSSolutions\\Parallel\\Tests\\": "tests/"
         }
+    },
+    "scripts": {
+        "test": [
+            "vendor/bin/phpunit --coverage-html tests/coverage"
+        ]
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
