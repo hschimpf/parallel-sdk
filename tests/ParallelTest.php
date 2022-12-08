@@ -1,8 +1,7 @@
 <?php declare(strict_types=1);
 
-namespace HDSSolutions\Parallel\Tests;
+namespace HDSSolutions\Console\Tests;
 
-use HDSSolutions\Parallel\Parallel;
 use PHPUnit\Framework\TestCase;
 use function parallel\bootstrap;
 

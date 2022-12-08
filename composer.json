@@ -22,7 +22,7 @@
             "src/helpers.php"
         ],
         "psr-4": {
-            "HDSSolutions\\Parallel\\": "src/"
+            "HDSSolutions\\Console\\": "src/"
         }
     },
     "require-dev": {
@@ -31,7 +31,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "HDSSolutions\\Parallel\\Tests\\": "tests/"
+            "HDSSolutions\\Console\\Tests\\": "tests/"
         }
     },
     "scripts": {
