@@ -2,7 +2,9 @@
 
 namespace HDSSolutions\Console\Tests;
 
+use HDSSolutions\Console\Parallel\Scheduler;
 use PHPUnit\Framework\TestCase;
+use Throwable;
 use function parallel\bootstrap;
 
 final class ParallelTest extends TestCase {
@@ -22,7 +24,39 @@ final class ParallelTest extends TestCase {
      * @depends testThatParallelExtensionIsAvailable
      */
     public function testParallel(): void {
-        // TODO
+        // register worker
+        Scheduler::with(new TestWorker())
+            // register task finished callback
+            ->onTaskFinished(static function($task_no) {
+                echo sprintf("%s finished on TestWorker\n", $task_no);
+            });
+        // run example tasks
+        for ($i = 1; $i <= 25; $i++) {
+            try { Scheduler::runTask($i);
+            } catch (Throwable) {
+                Scheduler::stop();
+            }
+        }
+
+        // change worker
+        Scheduler::with(new AnotherWorker())
+            // register task finished callback
+            ->onTaskFinished(static function($task_no) {
+                echo sprintf("%s finished on AnotherWorker\n", $task_no);
+            });
+        // run more example tasks
+        for ($i = 1; $i <= 25; $i++) {
+            try { Scheduler::runTask($i);
+            } catch (Throwable) {
+                Scheduler::stop();
+            }
+        }
+
+        foreach (Scheduler::getThreadsResults() as $task_result) {
+            echo sprintf("Task result from #%u\n", $task_result);
+        }
+
+        Scheduler::disconnect();
     }
 
 }
