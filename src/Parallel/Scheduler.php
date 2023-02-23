@@ -6,6 +6,7 @@ use Closure;
 use Exception;
 use Generator;
 use parallel\Channel;
+use parallel\Events\Event\Type;
 use parallel\Future;
 use parallel\Runtime;
 use RuntimeException;
@@ -34,6 +35,12 @@ final class Scheduler {
 
     /** @var ?int Max CPU usage count */
     private ?int $max_cpu_count = null;
+
+    /** @var ?Future Thread controlling the progress bar */
+    private ?Future $__progressBarThread = null;
+
+    /** @var ?Channel Channel of communication between threads and progress bar */
+    private ?Channel $__progressBarChannel = null;
 
     /**
      * Disable public constructor, usage only available through singleton instance
@@ -144,9 +151,18 @@ final class Scheduler {
         // wait for all tasks to finish
         while ( !empty(array_filter(self::instance()->__futures, static fn(Future $future): bool => !$future->done()))) usleep(10_000);
 
+        // send message to channel to stop execution
+        self::instance()->__progressBarChannel->send(Type::Close);
+
+        // wait progress thread to finish
+        while ( !self::instance()->__progressBarThread->done()) usleep(10_000);
+        self::instance()->__progressBarThread = null;
+
         // close channels
         self::instance()->__starter?->close();
         self::instance()->__starter = null;
+        self::instance()->__progressBarChannel?->close();
+        self::instance()->__progressBarChannel = null;
     }
 
     /**
@@ -155,6 +171,10 @@ final class Scheduler {
     public static function disconnect(): void {
         // check if extension is loaded
         if ( !extension_loaded('parallel')) return;
+
+        // stop progress bar thread and close channel
+        try { self::instance()->__progressBarThread?->cancel(); } catch (Exception) {}
+        try { self::instance()->__progressBarChannel?->close(); } catch (Channel\Error\Closed) {}
 
         // kill all running threads
         while ($task = array_shift(self::instance()->__futures)) try { $task->cancel(); } catch (Exception) {}
