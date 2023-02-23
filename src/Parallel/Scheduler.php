@@ -159,7 +159,7 @@ final class Scheduler {
         // kill all running threads
         while ($task = array_shift(self::instance()->__futures)) try { $task->cancel(); } catch (Exception) {}
         // task start watcher
-        try { self::instance()->__starter?->close(); } catch (Exception) {}
+        try { self::instance()->__starter?->close(); } catch (Channel\Error\Closed) {}
     }
 
     private function runNextTask(): void {
