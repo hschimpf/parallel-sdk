@@ -13,8 +13,7 @@
         "ext-parallel": "Allows to run multi-threaded processes"
     },
     "require": {
-        "php": ">=8.0",
-        "illuminate/collections": "^8.0|^9.0"
+        "php": ">=8.0"
     },
     "autoload": {
         "files": [
