@@ -6,7 +6,6 @@ use Closure;
 use Exception;
 use Generator;
 use parallel\Channel;
-use parallel\Events\Event\Type;
 use parallel\Future;
 use parallel\Runtime;
 use RuntimeException;
@@ -35,13 +34,6 @@ final class Scheduler {
 
     /** @var ?int Max CPU usage count */
     private ?int $max_cpu_count = null;
-
-    /** @var ?Future Thread controlling the progress bar */
-    private ?Future $progressBarThread = null;
-
-    /** @var ?Channel Channel of communication between threads and progress bar */
-    private ?Channel $progressBarChannel = null;
-
     /**
      * Disable public constructor, usage only available through singleton instance
      */
@@ -150,19 +142,9 @@ final class Scheduler {
 
         // wait for all tasks to finish
         while ( !empty(array_filter(self::instance()->futures, static fn(Future $future): bool => !$future->done()))) usleep(10_000);
-
-        // send message to channel to stop execution
-        self::instance()->progressBarChannel->send(Type::Close);
-
-        // wait progress thread to finish
-        while ( !self::instance()->progressBarThread->done()) usleep(10_000);
-        self::instance()->progressBarThread = null;
-
         // close channels
-        self::instance()->starter?->close();
-        self::instance()->starter = null;
-        self::instance()->progressBarChannel?->close();
-        self::instance()->progressBarChannel = null;
+        self::instance()->__starter?->close();
+        self::instance()->__starter = null;
     }
 
     /**
@@ -171,11 +153,6 @@ final class Scheduler {
     public static function disconnect(): void {
         // check if extension is loaded
         if ( !extension_loaded('parallel')) return;
-
-        // stop progress bar thread and close channel
-        try { self::instance()->progressBarThread?->cancel(); } catch (Exception) {}
-        try { self::instance()->progressBarChannel?->close(); } catch (Channel\Error\Closed) {}
-
         // kill all running threads
         while ($task = array_shift(self::instance()->futures)) try { $task->cancel(); } catch (Exception) {}
         // task start watcher
