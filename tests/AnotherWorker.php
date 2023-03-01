@@ -7,7 +7,7 @@ use HDSSolutions\Console\Parallel\ParallelWorker;
 final class AnotherWorker extends ParallelWorker {
 
     protected function processTask(int $number = 0): int {
-        $microseconds = random_int(1000, 5000);
+        $microseconds = random_int(100, 500);
         echo sprintf("AnotherWorker >> Hello from #%u, I'll wait %sms\n", $number, $microseconds);
         usleep($microseconds * 1000);
 
