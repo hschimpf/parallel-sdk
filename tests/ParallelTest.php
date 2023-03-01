@@ -35,8 +35,7 @@ final class ParallelTest extends TestCase {
             Scheduler::with($worker)
                 // register task finished callback
                 ->onTaskFinished(static function($task_no) {
-                    echo sprintf("%s finished on %s\n",
-                        $task_no, 'asdasd');
+                    echo sprintf("%s finished\n", $task_no);
                 });
             // build example "tasks"
             $tasks[get_class($worker)] = range(($idx + 1) * 100, ($idx + 1) * 100 + 25);
