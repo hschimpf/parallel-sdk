@@ -24,39 +24,53 @@ final class ParallelTest extends TestCase {
      * @depends testThatParallelExtensionIsAvailable
      */
     public function testParallel(): void {
-        // register worker
-        Scheduler::with(new TestWorker())
-            // register task finished callback
-            ->onTaskFinished(static function($task_no) {
-                echo sprintf("%s finished on TestWorker\n", $task_no);
-            });
-        // run example tasks
-        for ($i = 1; $i <= 25; $i++) {
-            try { Scheduler::runTask($i);
-            } catch (Throwable) {
-                Scheduler::stop();
+        $workers = [
+            new TestWorker(),
+            new AnotherWorker(),
+        ];
+        $tasks = [];
+
+        foreach ($workers as $idx => $worker) {
+            // register worker
+            Scheduler::with($worker)
+                // register task finished callback
+                ->onTaskFinished(static function($task_no) {
+                    echo sprintf("%s finished\n", $task_no);
+                });
+            // build example "tasks"
+            $tasks[get_class($worker)] = range(($idx + 1) * 100, ($idx + 1) * 100 + 25);
+            // run example tasks
+            foreach ($tasks[get_class($worker)] as $task) {
+                try { Scheduler::runTask($task);
+                } catch (Throwable) {
+                    Scheduler::stop();
+                }
             }
         }
 
-        // change worker
-        Scheduler::with(new AnotherWorker())
-            // register task finished callback
-            ->onTaskFinished(static function($task_no) {
-                echo sprintf("%s finished on AnotherWorker\n", $task_no);
-            });
-        // run more example tasks
-        for ($i = 1; $i <= 25; $i++) {
-            try { Scheduler::runTask($i);
-            } catch (Throwable) {
-                Scheduler::stop();
-            }
-        }
-
-        foreach (Scheduler::getThreadsResults() as $task_result) {
-            echo sprintf("Task result from #%u\n", $task_result);
+        $results = [];
+        // fetch processed tasks and store their results
+        foreach (Scheduler::getProcessedTasks() as $task_result) {
+            echo sprintf("Task result from #%s => %u\n",
+                $worker_class = get_class($task_result->getWorker()),
+                $result = $task_result->getResult());
+            $results[$worker_class][] = $result;
         }
 
         Scheduler::disconnect();
+
+        // check results
+        foreach ($workers as $worker) {
+            // get original tasks
+            $worker_tasks = $tasks[get_class($worker)];
+            // get tasks results
+            $worker_results = $results[get_class($worker)];
+
+            // tasks results must be the same count
+            $this->assertCount(count($worker_tasks), $worker_results);
+            // tasks results must be in different order
+            $this->assertNotEquals($worker_tasks, $worker_results, 'Arrays are in the same order');
+        }
     }
 
 }
