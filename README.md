@@ -115,3 +115,12 @@ Scheduler::disconnect();
 
 ### References
 1. [Parallel\Runtime::run() Task Characteristics](https://www.php.net/manual/en/parallel-runtime.run.php#refsect1-parallel-runtime.run-closure-characteristics)
+
+# Security Vulnerabilities
+If you encounter any security related issue, feel free to raise a ticket on the issue traker.
+
+# Contributors
+- [Hermann D. Schimpf](https://hds-solutions.net)
+
+# Licence
+GPL-3.0 Please see [License File](LICENSE) for more information.
