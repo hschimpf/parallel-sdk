@@ -10,7 +10,8 @@
         }
     ],
     "suggest": {
-        "ext-parallel": "Allows to run multi-threaded processes"
+        "ext-parallel": "Allows to run multi-threaded processes",
+        "symfony/console": "Allows usage of a shared ProgressBar between the Workers"
     },
     "require": {
         "php": ">=8.0"
@@ -25,7 +26,8 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^9.6",
-        "roave/security-advisories": "dev-latest"
+        "roave/security-advisories": "dev-latest",
+        "symfony/console": "^6.0"
     },
     "autoload-dev": {
         "psr-4": {
