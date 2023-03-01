@@ -18,29 +18,29 @@ final class Scheduler {
     /** @var Scheduler Singleton instance */
     private static self $instance;
 
-    /** @var array<ParallelWorker> Registered workers */
+    /** @var ParallelWorker[] Registered workers */
     private array $workers;
 
     /** @var ?Channel Channel to wait threads start */
-    private ?Channel $__starter = null;
+    private ?Channel $starter = null;
 
-    /** @var array<int, mixed> Collection of pending tasks */
-    private array $__pending_tasks = [];
+    /** @var PendingTask[] Collection of pending tasks */
+    private array $pendingTasks = [];
 
-    /** @var array<Future> Collection of running tasks */
-    private array $__futures = [];
+    /** @var Future[] Collection of running tasks */
+    private array $futures = [];
 
     /** @var array Collection of results from threads */
-    private array $__results = [];
+    private array $results = [];
 
     /** @var ?int Max CPU usage count */
     private ?int $max_cpu_count = null;
 
     /** @var ?Future Thread controlling the progress bar */
-    private ?Future $__progressBarThread = null;
+    private ?Future $progressBarThread = null;
 
     /** @var ?Channel Channel of communication between threads and progress bar */
-    private ?Channel $__progressBarChannel = null;
+    private ?Channel $progressBarChannel = null;
 
     /**
      * Disable public constructor, usage only available through singleton instance
@@ -90,13 +90,13 @@ final class Scheduler {
         }
 
         // save data to pending tasks
-        self::instance()->__pending_tasks[] = [ $worker_id, $data ];
+        self::instance()->pendingTasks[] = new PendingTask($worker_id, $data);
 
         do {
             // remove finished tasks
             self::instance()->cleanFinishedTasks();
             // if pending tasks count exceeds available CPU, wait 10ms
-            if ($pending_eq_cpu = (count(self::instance()->__pending_tasks) >= self::instance()->getMaxCpuUsage())) usleep(10_000);
+            if ($pending_eq_cpu = (count(self::instance()->pendingTasks) >= self::instance()->getMaxCpuUsage())) usleep(10_000);
 
         // wait if all CPU are used and pending tasks exceed available CPU
         } while ($pending_eq_cpu && !self::instance()->hasCpuAvailable());
@@ -108,13 +108,13 @@ final class Scheduler {
     /**
      * Returns the result of every processed task
      *
-     * @return array | Generator Results of processed tasks
+     * @return ProcessedTask[] | Generator Results of processed tasks
      */
-    public static function getThreadsResults(): array | Generator {
+    public static function getProcessedTasks(): Generator | array {
         // start all pending tasks, send all available results, until there is no more results available
-        while ( !empty(self::instance()->__pending_tasks) || !empty(self::instance()->__futures) || !empty(self::instance()->__results)) {
+        while ( !empty(self::instance()->pendingTasks) || !empty(self::instance()->futures) || !empty(self::instance()->results)) {
             // send available results
-            while (null !== $result = array_shift(self::instance()->__results))
+            while (null !== $result = array_shift(self::instance()->results))
                 // send already processed result
                 yield $result;
 
@@ -122,14 +122,14 @@ final class Scheduler {
             self::instance()->cleanFinishedTasks();
 
             // start available tasks
-            while (self::instance()->hasCpuAvailable() && !empty(self::instance()->__pending_tasks))
+            while (self::instance()->hasCpuAvailable() && !empty(self::instance()->pendingTasks))
                 // start the next available task
                 self::instance()->runNextTask();
 
             // check there are tasks running
-            if ( !empty(self::instance()->__futures))
+            if ( !empty(self::instance()->futures))
                 // wait for any task to finish
-                while ( empty(array_filter(self::instance()->__futures, static fn(Future $future): bool => $future->done()))) usleep(10_000);
+                while ( empty(array_filter(self::instance()->futures, static fn(Future $future): bool => $future->done()))) usleep(10_000);
         }
     }
 
@@ -146,23 +146,23 @@ final class Scheduler {
         }
 
         // cancel all running tasks
-        if ($force) array_map(static fn(Future $future): bool => $future->cancel(), self::instance()->__futures);
+        if ($force) array_map(static fn(Future $future): bool => $future->cancel(), self::instance()->futures);
 
         // wait for all tasks to finish
-        while ( !empty(array_filter(self::instance()->__futures, static fn(Future $future): bool => !$future->done()))) usleep(10_000);
+        while ( !empty(array_filter(self::instance()->futures, static fn(Future $future): bool => !$future->done()))) usleep(10_000);
 
         // send message to channel to stop execution
-        self::instance()->__progressBarChannel->send(Type::Close);
+        self::instance()->progressBarChannel->send(Type::Close);
 
         // wait progress thread to finish
-        while ( !self::instance()->__progressBarThread->done()) usleep(10_000);
-        self::instance()->__progressBarThread = null;
+        while ( !self::instance()->progressBarThread->done()) usleep(10_000);
+        self::instance()->progressBarThread = null;
 
         // close channels
-        self::instance()->__starter?->close();
-        self::instance()->__starter = null;
-        self::instance()->__progressBarChannel?->close();
-        self::instance()->__progressBarChannel = null;
+        self::instance()->starter?->close();
+        self::instance()->starter = null;
+        self::instance()->progressBarChannel?->close();
+        self::instance()->progressBarChannel = null;
     }
 
     /**
@@ -173,56 +173,62 @@ final class Scheduler {
         if ( !extension_loaded('parallel')) return;
 
         // stop progress bar thread and close channel
-        try { self::instance()->__progressBarThread?->cancel(); } catch (Exception) {}
-        try { self::instance()->__progressBarChannel?->close(); } catch (Channel\Error\Closed) {}
+        try { self::instance()->progressBarThread?->cancel(); } catch (Exception) {}
+        try { self::instance()->progressBarChannel?->close(); } catch (Channel\Error\Closed) {}
 
         // kill all running threads
-        while ($task = array_shift(self::instance()->__futures)) try { $task->cancel(); } catch (Exception) {}
+        while ($task = array_shift(self::instance()->futures)) try { $task->cancel(); } catch (Exception) {}
         // task start watcher
-        try { self::instance()->__starter?->close(); } catch (Channel\Error\Closed) {}
+        try { self::instance()->starter?->close(); } catch (Channel\Error\Closed) {}
     }
 
     private function runNextTask(): void {
         // check if there is an available CPU
-        if ( !empty($this->__pending_tasks) && $this->hasCpuAvailable()) {
-            // get data from pending tasks
-            [ $worker_id, $data ] = array_shift($this->__pending_tasks);
+        if ( !empty($this->pendingTasks) && $this->hasCpuAvailable()) {
+            // get next available pending task
+            $pending_task = array_shift($this->pendingTasks);
+            // get worker ID from pending task
+            $worker_id = $pending_task->getWorkerId();
 
             // create starter channel to wait threads start event
-            $this->__starter ??= extension_loaded('parallel') ? Channel::make('starter') : null;
+            $this->starter ??= extension_loaded('parallel') ? Channel::make('starter') : null;
 
-            // start task inside a thread (if parallel extension is available)
-            $this->__futures[] = ( !extension_loaded('parallel')
+            // process task inside a thread (if parallel extension is available)
+            $this->futures[] = ( !extension_loaded('parallel')
                 // normal execution (non-threaded)
-                ? $this->workers[$worker_id](...$data)
+                ? [ $worker_id, $this->workers[$worker_id](...$pending_task->getData()) ]
 
-                // parallel available, run process inside a thread
-                : run(static function(...$data): mixed {
+                // parallel available, process task inside a thread
+                : run(static function(...$data): array {
+                    /** @var int $worker_id */
+                    $worker_id = array_shift($data);
                     /** @var ParallelWorker $worker */
                     $worker = array_shift($data);
 
                     // notify that thread started
                     Channel::open('starter')->send(true);
 
-                    // process worker task
+                    // process task using specified worker
                     $result = $worker(...$data);
 
                     // execute finished event
                     try { $worker->dispatchTaskFinished($result);
                     } catch (Exception) {}
 
-                    // return worker result
-                    return $result;
+                    // return worker ID and result
+                    return [ $worker_id, $result ];
                 }, [
-                    // worker to process tasks
+                    // send worker ID for returning value
+                    $worker_id,
+                    // worker to process task
                     $this->workers[$worker_id],
-                    // task data passed to worker
-                    ...$data,
+                    // task data to pass to the worker
+                    ...$pending_task->getData(),
                 ])
             );
 
             // wait for thread to start
-            $this->__starter?->recv();
+            $this->starter?->recv();
         }
     }
 
@@ -233,25 +239,32 @@ final class Scheduler {
 
     private function hasCpuAvailable(): bool {
         // return if there is available CPU
-        return count($this->__futures) < $this->getMaxCpuUsage();
+        return count($this->futures) < $this->getMaxCpuUsage();
     }
 
     private function cleanFinishedTasks(): void {
         // release finished tasks from futures
-        $finished = [];
-        foreach ($this->__futures as $idx => $future) {
+        $finished_tasks = [];
+        foreach ($this->futures as $idx => $future) {
             // check if future is already done working
             if ( !extension_loaded('parallel') || $future->done()) {
-                // get result to release thread
-                try { $this->__results[] = extension_loaded('parallel') ? $future->value() : $future;
+                try {
+                    // get result to release thread
+                    $result = extension_loaded('parallel') ? $future->value() : $future;
+                    // get worker identifier
+                    $worker_id = array_shift($result);
+                    // get process result
+                    $result = array_shift($result);
+                    // store Task result
+                    $this->results[] = new ProcessedTask($this->workers[$worker_id], $result);
                 } catch (Throwable) {}
-                // remove future from list
-                $finished[] = $idx;
+                // add future idx to finished tasks list
+                $finished_tasks[] = $idx;
             }
         }
 
         // remove finished tasks from futures
-        foreach ($finished as $idx) unset($this->__futures[$idx]);
+        foreach ($finished_tasks as $idx) unset($this->futures[$idx]);
     }
 
     public function __destruct() {
