@@ -3,6 +3,7 @@
 namespace HDSSolutions\Console\Parallel;
 
 use RuntimeException;
+use Throwable;
 
 abstract class ParallelWorker implements Contracts\ParallelWorker {
 
@@ -11,6 +12,16 @@ abstract class ParallelWorker implements Contracts\ParallelWorker {
      * @see Contracts\ParallelWorker::STATES
      */
     private int $state = self::STATE_New;
+
+    /**
+     * @var float Time when process started
+     */
+    private float $started_at;
+
+    /**
+     * @var float Time when process finished
+     */
+    private float $finished_at;
 
     /**
      * @var mixed Worker execution result
@@ -29,7 +40,12 @@ abstract class ParallelWorker implements Contracts\ParallelWorker {
         }
 
         $this->state = self::STATE_Running;
-        $this->result = $this->process(...$args);
+        $this->started_at = microtime(true);
+
+        try { $this->result = $this->process(...$args);
+        } catch (Throwable) {}
+
+        $this->finished_at = microtime(true);
         $this->state = self::STATE_Finished;
     }
 
@@ -39,6 +55,14 @@ abstract class ParallelWorker implements Contracts\ParallelWorker {
      * @return mixed Task processing result
      */
     abstract protected function process(): mixed;
+
+    final public function getStartedAt(): ?float {
+        return $this->started_at ?? null;
+    }
+
+    final public function getFinishedAt(): ?float {
+        return $this->finished_at ?? null;
+    }
 
     final public function getProcessedTask(): ProcessedTask {
         if ($this->state !== self::STATE_Finished) {

@@ -46,6 +46,16 @@ interface ParallelWorker {
     public function start(...$args): void;
 
     /**
+     * @return ?float Time when Worker started processing the Task, null if Worker didn't start yet
+     */
+    public function getStartedAt(): ?float;
+
+    /**
+     * @return ?float Time when Worker finished processing the Task, null if Worker didn't finish yet
+     */
+    public function getFinishedAt(): ?float;
+
+    /**
      * Returns the processed task
      *
      * @return ProcessedTask Processed task
