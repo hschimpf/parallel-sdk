@@ -22,7 +22,7 @@ composer require hds-solutions/parallel-sdk
 ## Usage
 You need to define a `Worker` that will process the tasks. There are two options:
 1. Using an anonymous function as a `Worker`.
-2. Creating a class that extends from `ParallelWorker` and implements the `processTask()` method.
+2. Creating a class that extends from `ParallelWorker` and implements the `process()` method.
 
 Then you can schedule tasks to run in parallel using `Scheduler::runTask()` method.
 
@@ -31,7 +31,7 @@ Defining an anonymous function as a `Worker` to process the tasks.
 ```php
 use HDSSolutions\Console\Parallel\Scheduler;
 
-Scheduler::with(static function(int $number): int {
+Scheduler::using(static function(int $number): int {
     // here you do some work with the received data
     // this portion of code will run on a separated thread
     
@@ -55,7 +55,7 @@ use HDSSolutions\Console\Parallel\ParallelWorker;
 
 final class ExampleWorker extends ParallelWorker {
 
-    protected function processTask(int $number = 0): int {
+    protected function process(int $number = 0): int {
         // example process
         $microseconds = random_int(100, 500);
         echo sprintf("ExampleWorker >> Hello from task #%u, I'll wait %sms\n", $number, $microseconds);
@@ -72,7 +72,7 @@ final class ExampleWorker extends ParallelWorker {
 use HDSSolutions\Console\Parallel\Scheduler;
 
 $worker = new ExampleWorker();
-Scheduler::with($worker);
+Scheduler::using($worker);
 ```
 
 ### Schedule tasks
@@ -93,13 +93,14 @@ foreach (range(1, 100) as $task) {
 ```
 
 ### Get processed tasks result
+
 ```php
 use HDSSolutions\Console\Parallel\Scheduler;
 use HDSSolutions\Console\Parallel\ProcessedTask;
 
 foreach (Scheduler::getProcessedTasks() as $processed_task) {
-    // you have access to Worker that processed the task
-    $worker = $processed_task->getWorker();
+    // you have access to the Worker class that was used to processed the task
+    $worker = $processed_task->getWorkerClass();
     // and the result of the task processed
     $result = $processed_task->getResult();
 }

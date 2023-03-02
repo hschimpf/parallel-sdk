@@ -5,6 +5,9 @@ namespace HDSSolutions\Console\Parallel;
 use Closure;
 use Exception;
 use Generator;
+use HDSSolutions\Console\Parallel\Internals\PendingTask;
+use HDSSolutions\Console\Parallel\Internals\RegisteredWorker;
+use HDSSolutions\Console\Parallel\Internals\Worker;
 use parallel\Channel;
 use parallel\Future;
 use parallel\Runtime;
@@ -17,8 +20,8 @@ final class Scheduler {
     /** @var Scheduler Singleton instance */
     private static self $instance;
 
-    /** @var ParallelWorker[] Registered workers */
-    private array $workers;
+    /** @var RegisteredWorker[] Registered workers */
+    private array $registered_workers = [];
 
     /** @var ?Channel Channel to wait threads start */
     private ?Channel $starter = null;
@@ -47,17 +50,20 @@ final class Scheduler {
     }
 
     /**
-     * Register the worker to process tasks
+     * Register a worker class to process tasks
      *
-     * @param  Closure|ParallelWorker  $worker  Worker to process tasks
+     * @param  string | Closure  $worker  Worker class to be used for processing tasks
      *
-     * @return ParallelWorker
+     * @return RegisteredWorker
      */
-    public static function with(Closure | ParallelWorker $worker): ParallelWorker {
+    public static function using(string | Closure $worker): RegisteredWorker {
         // convert Closure to ParallelWorker instance
-        self::instance()->workers[] = $worker instanceof ParallelWorker ? $worker : new Worker($worker);
+        self::instance()->registered_workers[] = $registered_worker = new RegisteredWorker(
+            worker_class: is_string($worker) ? $worker : Worker::class,
+            closure:      $worker instanceof Closure ? $worker : null,
+        );
 
-        return $worker;
+        return $registered_worker;
     }
 
     /**
@@ -76,13 +82,15 @@ final class Scheduler {
      */
     public static function runTask(mixed ...$data): void {
         // check if a worker was defined
-        if (($worker_id = count(self::instance()->workers) - 1) < 0) {
+        if (($worker_id = count(self::instance()->registered_workers) - 1) < 0) {
             // reject task scheduling, no worker is defined
             throw new RuntimeException('No worker is defined');
         }
 
-        // save data to pending tasks
-        self::instance()->pendingTasks[] = new PendingTask($worker_id, $data);
+        // get registered worker
+        $registered_worker = self::instance()->registered_workers[$worker_id];
+        // register a pending task linked with the registered Worker
+        self::instance()->pendingTasks[] = new PendingTask($registered_worker, $data);
 
         do {
             // remove finished tasks
@@ -143,8 +151,8 @@ final class Scheduler {
         // wait for all tasks to finish
         while ( !empty(array_filter(self::instance()->futures, static fn(Future $future): bool => !$future->done()))) usleep(10_000);
         // close channels
-        self::instance()->__starter?->close();
-        self::instance()->__starter = null;
+        self::instance()->starter?->close();
+        self::instance()->starter = null;
     }
 
     /**
@@ -164,45 +172,48 @@ final class Scheduler {
         if ( !empty($this->pendingTasks) && $this->hasCpuAvailable()) {
             // get next available pending task
             $pending_task = array_shift($this->pendingTasks);
-            // get worker ID from pending task
-            $worker_id = $pending_task->getWorkerId();
 
             // create starter channel to wait threads start event
             $this->starter ??= extension_loaded('parallel') ? Channel::make('starter') : null;
 
             // process task inside a thread (if parallel extension is available)
-            $this->futures[] = ( !extension_loaded('parallel')
-                // normal execution (non-threaded)
-                ? [ $worker_id, $this->workers[$worker_id](...$pending_task->getData()) ]
-
+            if (extension_loaded('parallel')) {
                 // parallel available, process task inside a thread
-                : run(static function(...$data): array {
-                    /** @var int $worker_id */
-                    $worker_id = array_shift($data);
-                    /** @var ParallelWorker $worker */
-                    $worker = array_shift($data);
-
+                $this->futures[] = run(static function(PendingTask $pending_task): ProcessedTask {
                     // notify that thread started
                     Channel::open('starter')->send(true);
 
-                    // process task using specified worker
-                    $result = $worker(...$data);
+                    // get Worker class to instantiate
+                    $worker_class = $pending_task->getRegisteredWorker()->getWorkerClass();
+                    /** @var ParallelWorker $worker Instance of the Worker */
+                    $worker = new $worker_class();
+                    // build task params
+                    $params = $worker instanceof Worker
+                        // process task using local Worker
+                        ? [ $pending_task->getRegisteredWorker()->getClosure(), ...$pending_task->getData() ]
+                        // process task using user Worker
+                        : [ ...$pending_task->getData() ];
+                    // process task
+                    $worker->start(...$params);
 
-                    // execute finished event
-                    try { $worker->dispatchTaskFinished($result);
-                    } catch (Exception) {}
-
-                    // return worker ID and result
-                    return [ $worker_id, $result ];
+                    // return Worker result
+                    return $worker->getProcessedTask();
                 }, [
-                    // send worker ID for returning value
-                    $worker_id,
-                    // worker to process task
-                    $this->workers[$worker_id],
-                    // task data to pass to the worker
-                    ...$pending_task->getData(),
-                ])
-            );
+                    // send pending task to process
+                    $pending_task,
+                ]);
+
+            } else {
+                // get Worker class to instantiate
+                $worker_class = $pending_task->getRegisteredWorker()->getWorkerClass();
+                /** @var ParallelWorker $worker Instance of the Worker */
+                $worker = new $worker_class();
+                // process task using worker
+                $worker->start(...$pending_task->getData());
+
+                // store Worker result
+                $this->futures[] = $worker->getProcessedTask();
+            }
 
             // wait for thread to start
             $this->starter?->recv();
@@ -225,16 +236,10 @@ final class Scheduler {
         foreach ($this->futures as $idx => $future) {
             // check if future is already done working
             if ( !extension_loaded('parallel') || $future->done()) {
-                try {
-                    // get result to release thread
-                    $result = extension_loaded('parallel') ? $future->value() : $future;
-                    // get worker identifier
-                    $worker_id = array_shift($result);
-                    // get process result
-                    $result = array_shift($result);
-                    // store Task result
-                    $this->results[] = new ProcessedTask($this->workers[$worker_id], $result);
+                // store the ProcessedTask
+                try { $this->results[] = extension_loaded('parallel') ? $future->value() : $future;
                 } catch (Throwable) {}
+
                 // add future idx to finished tasks list
                 $finished_tasks[] = $idx;
             }

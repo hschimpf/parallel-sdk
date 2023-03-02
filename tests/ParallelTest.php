@@ -2,8 +2,11 @@
 
 namespace HDSSolutions\Console\Tests;
 
+use HDSSolutions\Console\Parallel\Internals\Worker;
 use HDSSolutions\Console\Parallel\Scheduler;
+use HDSSolutions\Console\Tests\Workers;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Throwable;
 use function parallel\bootstrap;
 
@@ -23,24 +26,53 @@ final class ParallelTest extends TestCase {
     /**
      * @depends testThatParallelExtensionIsAvailable
      */
+    public function testThatWorkerMustBeDefinedValidates(): void {
+        $this->expectException(RuntimeException::class);
+        Scheduler::runTask(123);
+    }
+
+    /**
+     * @depends testThatParallelExtensionIsAvailable
+     */
+    public function testThatClosureCanBeUsedAsWorker(): void {
+        Scheduler::using(static function($input) {
+            usleep(random_int(100, 500)  * 1000);
+            return $input * 2;
+        });
+
+        foreach ($tasks = range(1, 10) as $task) {
+            try { Scheduler::runTask($task);
+            } catch (Throwable) {
+                Scheduler::stop();
+            }
+        }
+
+        $results = [];
+        foreach (Scheduler::getProcessedTasks() as $processed_task) {
+            $this->assertEquals(Worker::class, $processed_task->getWorkerClass());
+            $results[] = $processed_task->getResult();
+        }
+        // tasks results must be the same count
+        $this->assertCount(count($tasks), $results);
+    }
+
+    /**
+     * @depends testThatParallelExtensionIsAvailable
+     */
     public function testParallel(): void {
         $workers = [
-            new TestWorker(),
-            new AnotherWorker(),
+            Workers\TestWorker::class,
+            Workers\AnotherWorker::class,
         ];
         $tasks = [];
 
         foreach ($workers as $idx => $worker) {
             // register worker
-            Scheduler::with($worker)
-                // register task finished callback
-                ->onTaskFinished(static function($task_no) {
-                    echo sprintf("%s finished\n", $task_no);
-                });
+            Scheduler::using($worker);
             // build example "tasks"
-            $tasks[get_class($worker)] = range(($idx + 1) * 100, ($idx + 1) * 100 + 25);
+            $tasks[$worker] = range(($idx + 1) * 100, ($idx + 1) * 100 + 25);
             // run example tasks
-            foreach ($tasks[get_class($worker)] as $task) {
+            foreach ($tasks[$worker] as $task) {
                 try { Scheduler::runTask($task);
                 } catch (Throwable) {
                     Scheduler::stop();
@@ -50,10 +82,10 @@ final class ParallelTest extends TestCase {
 
         $results = [];
         // fetch processed tasks and store their results
-        foreach (Scheduler::getProcessedTasks() as $task_result) {
+        foreach (Scheduler::getProcessedTasks() as $processed_task) {
             echo sprintf("Task result from #%s => %u\n",
-                $worker_class = get_class($task_result->getWorker()),
-                $result = $task_result->getResult());
+                $worker_class = $processed_task->getWorkerClass(),
+                $result = $processed_task->getResult());
             $results[$worker_class][] = $result;
         }
 
@@ -62,9 +94,9 @@ final class ParallelTest extends TestCase {
         // check results
         foreach ($workers as $worker) {
             // get original tasks
-            $worker_tasks = $tasks[get_class($worker)];
+            $worker_tasks = $tasks[$worker];
             // get tasks results
-            $worker_results = $results[get_class($worker)];
+            $worker_results = $results[$worker];
 
             // tasks results must be the same count
             $this->assertCount(count($worker_tasks), $worker_results);
