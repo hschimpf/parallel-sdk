@@ -20,6 +20,15 @@ composer require hds-solutions/parallel-sdk
 ```
 
 ## Usage
+Firstly, you need to set the bootstrap file for parallel. Setting the composer's autoloader is enough. See reference [#1](#references) for more info.
+```php
+// check if extension is loaded to allow deploying even in envorinments where parallel isn't installed
+if (extension_loaded('parallel')) {
+    // set the path to composer's autoloader
+    parallel\bootstrap(__DIR__.'/vendor/autoload.php');
+}
+```
+
 You need to define a `Worker` that will process the tasks. There are two options:
 1. Using an anonymous function as a `Worker`.
 2. Creating a class that extends from `ParallelWorker` and implements the `process()` method.
@@ -87,7 +96,7 @@ foreach (range(1, 100) as $task) {
 
     } catch (Throwable) {
         // if no Worker was defined, a RuntimeException will be thrown
-        // also, Workers have some limitations, see Reference #1 for more info
+        // also, Workers have some limitations, see Reference #2 for more info
     }
 }
 ```
@@ -115,7 +124,8 @@ Scheduler::disconnect();
 ```
 
 ### References
-1. [Parallel\Runtime::run() Task Characteristics](https://www.php.net/manual/en/parallel-runtime.run.php#refsect1-parallel-runtime.run-closure-characteristics)
+1. [parallel\bootstrap()](https://www.php.net/manual/en/parallel.bootstrap.php)
+2. [Parallel\Runtime::run() Task Characteristics](https://www.php.net/manual/en/parallel-runtime.run.php#refsect1-parallel-runtime.run-closure-characteristics)
 
 # Security Vulnerabilities
 If you encounter any security related issue, feel free to raise a ticket on the issue traker.

@@ -18,8 +18,8 @@ final class ParallelTest extends TestCase {
 
         // check if extension is available
         if ($loaded) {
-            // set parallel bootstrap file
-            bootstrap(__DIR__.'/config/bootstrap.php');
+            // set bootstrap file
+            bootstrap(__DIR__.'/../vendor/autoload.php');
         }
     }
 
