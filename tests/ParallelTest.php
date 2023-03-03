@@ -66,9 +66,11 @@ final class ParallelTest extends TestCase {
         ];
         $tasks = [];
 
+        $multipliers = [ 2, 4, 8 ];
+
         foreach ($workers as $idx => $worker) {
             // register worker
-            Scheduler::using($worker);
+            Scheduler::using($worker, $multipliers);
             // build example "tasks"
             $tasks[$worker] = range(($idx + 1) * 100, ($idx + 1) * 100 + 25);
             // run example tasks
@@ -101,7 +103,10 @@ final class ParallelTest extends TestCase {
             // tasks results must be the same count
             $this->assertCount(count($worker_tasks), $worker_results);
             // tasks results must be in different order
-            $this->assertNotEquals($worker_tasks, $worker_results, 'Arrays are in the same order');
+            $this->assertNotEquals($worker_tasks, array_column($worker_results, 0), 'Arrays are in the same order');
+
+            $result = array_shift($worker_results);
+            $this->assertEquals($result[1], $result[0] * array_product($multipliers));
         }
     }
 
