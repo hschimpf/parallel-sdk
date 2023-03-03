@@ -53,14 +53,16 @@ final class Scheduler {
      * Register a worker class to process tasks
      *
      * @param  string | Closure  $worker  Worker class to be used for processing tasks
+     * @param  mixed  ...$args  Arguments passed to Worker constructor
      *
      * @return RegisteredWorker
      */
-    public static function using(string | Closure $worker): RegisteredWorker {
+    public static function using(string | Closure $worker, ...$args): RegisteredWorker {
         // convert Closure to ParallelWorker instance
         self::instance()->registered_workers[] = $registered_worker = new RegisteredWorker(
             worker_class: is_string($worker) ? $worker : Worker::class,
             closure:      $worker instanceof Closure ? $worker : null,
+            args:         $args,
         );
 
         return $registered_worker;
@@ -186,7 +188,7 @@ final class Scheduler {
                     // get Worker class to instantiate
                     $worker_class = $pending_task->getRegisteredWorker()->getWorkerClass();
                     /** @var ParallelWorker $worker Instance of the Worker */
-                    $worker = new $worker_class();
+                    $worker = new $worker_class(...$pending_task->getRegisteredWorker()->getArgs());
                     // build task params
                     $params = $worker instanceof Worker
                         // process task using local Worker

@@ -28,8 +28,6 @@ abstract class ParallelWorker implements Contracts\ParallelWorker {
      */
     private mixed $result;
 
-    final public function __construct() {}
-
     final public function getState(): int {
         return $this->state;
     }

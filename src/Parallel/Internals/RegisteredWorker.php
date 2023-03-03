@@ -9,6 +9,7 @@ final class RegisteredWorker {
     public function __construct(
         private string $worker_class,
         private ?Closure $closure = null,
+        private array $args = [],
     ) {}
 
     public function getWorkerClass(): string {
@@ -17,6 +18,10 @@ final class RegisteredWorker {
 
     public function getClosure(): ?Closure {
         return $this->closure;
+    }
+
+    public function getArgs(): array {
+        return $this->args;
     }
 
 }
