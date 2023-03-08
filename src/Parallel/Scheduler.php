@@ -20,6 +20,9 @@ final class Scheduler {
     /** @var Scheduler Singleton instance */
     private static self $instance;
 
+    /** @var string Unique ID of the instance */
+    private string $uuid;
+
     /** @var RegisteredWorker[] Registered workers */
     private array $registered_workers = [];
 
@@ -37,10 +40,13 @@ final class Scheduler {
 
     /** @var ?int Max CPU usage count */
     private ?int $max_cpu_count = null;
+
     /**
      * Disable public constructor, usage only available through singleton instance
      */
-    private function __construct() {}
+    private function __construct() {
+        $this->uuid = uniqid(self::class, true);
+    }
 
     /**
      * @return self Singleton instance
@@ -176,14 +182,14 @@ final class Scheduler {
             $pending_task = array_shift($this->pendingTasks);
 
             // create starter channel to wait threads start event
-            $this->starter ??= extension_loaded('parallel') ? Channel::make('starter') : null;
+            $this->starter ??= extension_loaded('parallel') ? Channel::make(sprintf('starter@%s', $this->uuid)) : null;
 
             // process task inside a thread (if parallel extension is available)
             if (extension_loaded('parallel')) {
                 // parallel available, process task inside a thread
-                $this->futures[] = run(static function(PendingTask $pending_task): ProcessedTask {
+                $this->futures[] = run(static function(string $uuid, PendingTask $pending_task): ProcessedTask {
                     // notify that thread started
-                    Channel::open('starter')->send(true);
+                    Channel::open(sprintf('starter@%s', $uuid))->send(true);
 
                     // get Worker class to instantiate
                     $worker_class = $pending_task->getRegisteredWorker()->getWorkerClass();
@@ -201,6 +207,8 @@ final class Scheduler {
                     // return Worker result
                     return $worker->getProcessedTask();
                 }, [
+                    // send UUID for starter channel
+                    $this->uuid,
                     // send pending task to process
                     $pending_task,
                 ]);
