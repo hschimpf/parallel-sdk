@@ -36,7 +36,7 @@ final class ParallelTest extends TestCase {
      */
     public function testThatClosureCanBeUsedAsWorker(): void {
         Scheduler::using(static function($input) {
-            usleep(random_int(100, 500)  * 1000);
+            usleep(random_int(100, 500) * 1000);
             return $input * 2;
         });
 
@@ -64,15 +64,23 @@ final class ParallelTest extends TestCase {
             Workers\TestWorker::class,
             Workers\AnotherWorker::class,
         ];
-        $tasks = [];
 
         $multipliers = [ 2, 4, 8 ];
 
+        // build example "tasks"
+        $tasks = [];
+        $total = 0;
         foreach ($workers as $idx => $worker) {
-            // register worker
-            Scheduler::using($worker, $multipliers);
-            // build example "tasks"
             $tasks[$worker] = range(($idx + 1) * 100, ($idx + 1) * 100 + 25);
+            $total += count($tasks[$worker]);
+        }
+
+        foreach ($workers as $worker) {
+            // register worker
+            Scheduler::using($worker, $multipliers)
+                // init progress bar for worker
+                ->withProgress(steps: $total);
+
             // run example tasks
             foreach ($tasks[$worker] as $task) {
                 try { Scheduler::runTask($task);
@@ -85,9 +93,10 @@ final class ParallelTest extends TestCase {
         $results = [];
         // fetch processed tasks and store their results
         foreach (Scheduler::getProcessedTasks() as $processed_task) {
+            $result = $processed_task->getResult();
             echo sprintf("Task result from #%s => %u\n",
                 $worker_class = $processed_task->getWorkerClass(),
-                $result = $processed_task->getResult());
+                $result[1]);
             $results[$worker_class][] = $result;
         }
 
