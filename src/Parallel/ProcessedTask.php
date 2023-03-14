@@ -5,23 +5,23 @@ namespace HDSSolutions\Console\Parallel;
 final class ProcessedTask {
 
     /**
-     * @param  ParallelWorker  $worker  Worker that processed the task
-     * @param  mixed  $result  Result of the task
+     * @param  string  $worker_class  Worker class used to process the Task
+     * @param  mixed  $result  Result of the Task
      */
     public function __construct(
-        private ParallelWorker $worker,
+        private string $worker_class,
         private mixed $result,
     ) {}
 
     /**
-     * @return ParallelWorker
+     * @return string Worker class that processed the Task
      */
-    public function getWorker(): ParallelWorker {
-        return $this->worker;
+    public function getWorkerClass(): string {
+        return $this->worker_class;
     }
 
     /**
-     * @return mixed
+     * @return mixed Result of the processed Task
      */
     public function getResult(): mixed {
         return $this->result;
