@@ -20,9 +20,18 @@ composer require hds-solutions/parallel-sdk
 ```
 
 ## Usage
+Firstly, you need to set the bootstrap file for parallel. Setting the composer's autoloader is enough. See reference [#1](#references) for more info.
+```php
+// check if extension is loaded to allow deploying even in envorinments where parallel isn't installed
+if (extension_loaded('parallel')) {
+    // set the path to composer's autoloader
+    parallel\bootstrap(__DIR__.'/vendor/autoload.php');
+}
+```
+
 You need to define a `Worker` that will process the tasks. There are two options:
 1. Using an anonymous function as a `Worker`.
-2. Creating a class that extends from `ParallelWorker` and implements the `processTask()` method.
+2. Creating a class that extends from `ParallelWorker` and implements the `process()` method.
 
 Then you can schedule tasks to run in parallel using `Scheduler::runTask()` method.
 
@@ -31,7 +40,7 @@ Defining an anonymous function as a `Worker` to process the tasks.
 ```php
 use HDSSolutions\Console\Parallel\Scheduler;
 
-Scheduler::with(static function(int $number): int {
+Scheduler::using(static function(int $number): int {
     // here you do some work with the received data
     // this portion of code will run on a separated thread
     
@@ -55,7 +64,7 @@ use HDSSolutions\Console\Parallel\ParallelWorker;
 
 final class ExampleWorker extends ParallelWorker {
 
-    protected function processTask(int $number = 0): int {
+    protected function process(int $number = 0): int {
         // example process
         $microseconds = random_int(100, 500);
         echo sprintf("ExampleWorker >> Hello from task #%u, I'll wait %sms\n", $number, $microseconds);
@@ -72,7 +81,7 @@ final class ExampleWorker extends ParallelWorker {
 use HDSSolutions\Console\Parallel\Scheduler;
 
 $worker = new ExampleWorker();
-Scheduler::with($worker);
+Scheduler::using($worker);
 ```
 
 ### Schedule tasks
@@ -87,22 +96,74 @@ foreach (range(1, 100) as $task) {
 
     } catch (Throwable) {
         // if no Worker was defined, a RuntimeException will be thrown
-        // also, Workers have some limitations, see Reference #1 for more info
+        // also, Workers have some limitations, see Reference #2 for more info
     }
 }
 ```
 
 ### Get processed tasks result
+
 ```php
 use HDSSolutions\Console\Parallel\Scheduler;
 use HDSSolutions\Console\Parallel\ProcessedTask;
 
 foreach (Scheduler::getProcessedTasks() as $processed_task) {
-    // you have access to Worker that processed the task
-    $worker = $processed_task->getWorker();
+    // you have access to the Worker class that was used to processed the task
+    $worker = $processed_task->getWorkerClass();
     // and the result of the task processed
     $result = $processed_task->getResult();
 }
+```
+
+### ProgressBar
+
+#### Requeriments
+- `symfony/console` package
+- Enable a ProgressBar for the worker calling the `withProgress()` method.
+
+```php
+use HDSSolutions\Console\Parallel\Scheduler;
+
+$tasks = range(1, 10);
+
+$worker = new ExampleWorker();
+Scheduler::using($worker)
+    ->withProgress(steps: count($tasks);
+```
+
+#### Usage from Worker
+Available methods are:
+- `setMessage(string $message)`
+- `advance(int $steps)`
+- `setProgress(int $step)`
+- `display()`
+- `clear()`
+
+```php
+use HDSSolutions\Console\Parallel\ParallelWorker;
+
+final class ExampleWorker extends ParallelWorker {
+
+    protected function process(int $number = 0): int {
+        // example process
+        $microseconds = random_int(100, 500);
+        $this->setMessage(sprintf("ExampleWorker >> Hello from task #%u, I'll wait %sms", $number, $microseconds));
+        usleep($microseconds * 1000);
+        $this->advance();
+        // end example process
+
+        return $number;
+    }
+
+}
+```
+
+#### Example output
+```bash
+ 28 of 52: ExampleWorker >> Hello from task #123, I'll wait 604ms
+ [===========================================>------------------------------------]  53%
+ elapsed: 2 secs, remaining: 2 secs, ~13.50 items/s
+ memory: 562 KiB, threads: 12x ~474 KiB, Σ 5,6 MiB ↑ 5,6 MiB
 ```
 
 ## Graceful close all resources
@@ -114,4 +175,14 @@ Scheduler::disconnect();
 ```
 
 ### References
-1. [Parallel\Runtime::run() Task Characteristics](https://www.php.net/manual/en/parallel-runtime.run.php#refsect1-parallel-runtime.run-closure-characteristics)
+1. [parallel\bootstrap()](https://www.php.net/manual/en/parallel.bootstrap.php)
+2. [Parallel\Runtime::run() Task Characteristics](https://www.php.net/manual/en/parallel-runtime.run.php#refsect1-parallel-runtime.run-closure-characteristics)
+
+# Security Vulnerabilities
+If you encounter any security related issue, feel free to raise a ticket on the issue traker.
+
+# Contributors
+- [Hermann D. Schimpf](https://hds-solutions.net)
+
+# Licence
+GPL-3.0 Please see [License File](LICENSE) for more information.
