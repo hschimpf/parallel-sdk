@@ -5,13 +5,18 @@ namespace HDSSolutions\Console\Parallel;
 use Closure;
 use Exception;
 use Generator;
+use HDSSolutions\Console\Parallel\Internals\Messages\ProgressBarRegistrationMessage;
 use HDSSolutions\Console\Parallel\Internals\PendingTask;
+use HDSSolutions\Console\Parallel\Internals\ProgressBarWorker;
 use HDSSolutions\Console\Parallel\Internals\RegisteredWorker;
 use HDSSolutions\Console\Parallel\Internals\Worker;
 use parallel\Channel;
+use parallel\Events\Event\Type;
 use parallel\Future;
 use parallel\Runtime;
 use RuntimeException;
+use Symfony\Component\Console\Helper\ProgressBar;
+use Symfony\Component\Console\Output\ConsoleOutput;
 use Throwable;
 use function parallel\run;
 
@@ -42,10 +47,25 @@ final class Scheduler {
     private ?int $max_cpu_count = null;
 
     /**
+     * @var ProgressBar|null ProgressBar instance for non-threaded Tasks execution
+     */
+    private ?ProgressBar $progressBar = null;
+
+    /**
+     * @var Future|null Thread controlling the ProgressBar
+     */
+    private ?Future $progressBarThread = null;
+
+    /**
+     * @var Channel|null Channel of communication between ProgressBar and Tasks
+     */
+    private ?Channel $progressBarChannel = null;
+
+    /**
      * Disable public constructor, usage only available through singleton instance
      */
     private function __construct() {
-        $this->uuid = uniqid(self::class, true);
+        $this->uuid = substr(md5(uniqid(self::class, true)), 0, 16);
     }
 
     /**
@@ -53,6 +73,73 @@ final class Scheduler {
      */
     private static function instance(): self {
         return self::$instance ??= new self();
+    }
+
+    public static function registerWorkerWithProgressBar(RegisteredWorker $registered_worker, int $steps = 0): void {
+        self::instance()->initProgressBar();
+
+        // register Worker ProgressBar
+        self::instance()->progressBarChannel?->send(new ProgressBarRegistrationMessage(
+            worker: $registered_worker->getWorkerClass(),
+            steps:  $steps,
+        ));
+    }
+
+    private function initProgressBar(): void {
+        // init ProgressBar only if not already working
+        if ($this->progressBar !== null || $this->progressBarThread !== null) return;
+
+        // start a normal ProgressBar if parallel isn't available (non-threaded)
+        if ( !extension_loaded('parallel')) {
+            // TODO non-threaded
+            $this->progressBar = $this->createProgressBarInstance();
+            return;
+        }
+
+        // create a channel of communication between ProgressBar and Tasks
+        $this->progressBarChannel = Channel::make(sprintf('progress-bar@%s', $this->uuid));
+
+        // main thread memory reporter
+        // FIXME this closure is copied and runs inside a thread, so memory report isn't accurate
+        $main_memory_usage = static fn() => memory_get_usage();
+
+        // decouple progress bar to a separated thread
+        $this->progressBarThread = run(static function(string $uuid, Closure $createProgressBarInstance, Closure $main_memory_usage): void {
+            // create ProgressBar worker instance
+            $progressBarWorker = new ProgressBarWorker($uuid);
+            // start ProgressBar
+            $progressBarWorker->start($createProgressBarInstance, $main_memory_usage);
+
+        }, [
+            // send UUID for starter channel
+            $this->uuid,
+            // send ProgressBar creator
+            fn() => $this->createProgressBarInstance(),
+            // send main memory usage reporter
+            $main_memory_usage,
+        ]);
+
+        // wait for ProgressBar thread to start
+        if ($this->progressBarChannel->recv() !== true) {
+            throw new RuntimeException('Failed to start ProgressBar');
+        }
+    }
+
+    private function createProgressBarInstance(): ProgressBar {
+        $progressBar = new ProgressBar(new ConsoleOutput());
+
+        // set initial parameters
+        $progressBar->setBarWidth( 80 );
+        $progressBar->setRedrawFrequency( 100 );
+        $progressBar->minSecondsBetweenRedraws( 0.1 );
+        $progressBar->maxSecondsBetweenRedraws( 0.2 );
+        $progressBar->setFormat(" %current% of %max%: %message%\n".
+                             " [%bar%] %percent:3s%%\n".
+                             " elapsed: %elapsed:6s%, remaining: %remaining:-6s%, %items_per_second% items/s\n".
+                             " memory: %threads_memory%\n");
+        $progressBar->setMessage('Starting...');
+
+        return $progressBar;
     }
 
     /**
@@ -66,6 +153,7 @@ final class Scheduler {
     public static function using(string | Closure $worker, ...$args): RegisteredWorker {
         // convert Closure to ParallelWorker instance
         self::instance()->registered_workers[] = $registered_worker = new RegisteredWorker(
+            identifier:   count(self::instance()->registered_workers),
             worker_class: is_string($worker) ? $worker : Worker::class,
             closure:      $worker instanceof Closure ? $worker : null,
             args:         $args,
@@ -158,21 +246,6 @@ final class Scheduler {
 
         // wait for all tasks to finish
         while ( !empty(array_filter(self::instance()->futures, static fn(Future $future): bool => !$future->done()))) usleep(10_000);
-        // close channels
-        self::instance()->starter?->close();
-        self::instance()->starter = null;
-    }
-
-    /**
-     * Ensures that everything gets closed
-     */
-    public static function disconnect(): void {
-        // check if extension is loaded
-        if ( !extension_loaded('parallel')) return;
-        // kill all running threads
-        while ($task = array_shift(self::instance()->futures)) try { $task->cancel(); } catch (Exception) {}
-        // task start watcher
-        try { self::instance()->starter?->close(); } catch (Channel\Error\Closed) {}
     }
 
     private function runNextTask(): void {
@@ -188,19 +261,29 @@ final class Scheduler {
             if (extension_loaded('parallel')) {
                 // parallel available, process task inside a thread
                 $this->futures[] = run(static function(string $uuid, PendingTask $pending_task): ProcessedTask {
-                    // notify that thread started
-                    Channel::open(sprintf('starter@%s', $uuid))->send(true);
-
+                    // get registered worker
+                    $registered_worker = $pending_task->getRegisteredWorker();
                     // get Worker class to instantiate
-                    $worker_class = $pending_task->getRegisteredWorker()->getWorkerClass();
+                    $worker_class = $registered_worker->getWorkerClass();
+
                     /** @var ParallelWorker $worker Instance of the Worker */
-                    $worker = new $worker_class(...$pending_task->getRegisteredWorker()->getArgs());
+                    $worker = new $worker_class(...$registered_worker->getArgs());
                     // build task params
                     $params = $worker instanceof Worker
                         // process task using local Worker
-                        ? [ $pending_task->getRegisteredWorker()->getClosure(), ...$pending_task->getData() ]
+                        ? [ $registered_worker->getClosure(), ...$pending_task->getData() ]
                         // process task using user Worker
                         : [ ...$pending_task->getData() ];
+
+                    // check if worker has ProgressBar enabled
+                    if ($registered_worker->hasProgressEnabled()) {
+                        // connect worker to ProgressBar
+                        $worker->connectProgressBar($uuid, $GLOBALS['worker_thread_id'] ??= sprintf('%s@%s', $uuid, substr(md5(uniqid($worker_class, true)), 0, 16)));
+                    }
+
+                    // notify that thread started
+                    Channel::open(sprintf('starter@%s', $uuid))->send(true);
+
                     // process task
                     $worker->start(...$params);
 
@@ -226,7 +309,9 @@ final class Scheduler {
             }
 
             // wait for thread to start
-            $this->starter?->recv();
+            if ($this->starter?->recv() !== true) {
+                throw new RuntimeException('Failed to start Task');
+            }
         }
     }
 
@@ -257,6 +342,37 @@ final class Scheduler {
 
         // remove finished tasks from futures
         foreach ($finished_tasks as $idx) unset($this->futures[$idx]);
+    }
+
+    /**
+     * Ensures that everything gets closed
+     */
+    public static function disconnect(): void {
+        // check if extension is loaded
+        if ( !extension_loaded('parallel')) return;
+
+        try {
+            // send message to ProgressBar thread to stop execution
+            self::instance()->progressBarChannel?->send(Type::Close);
+            // wait progress thread to finish
+            self::instance()->progressBarThread?->value();
+            // close ProgressBar communication channel
+            self::instance()->progressBarChannel?->close();
+
+            self::instance()->progressBarChannel = null;
+            self::instance()->progressBarThread = null;
+
+        } catch (Channel\Error\Closed | Throwable) {}
+
+        // kill all running threads
+        while ($task = array_shift(self::instance()->futures)) try { $task->cancel(); } catch (Exception) {}
+
+        try {
+            // task start watcher
+            self::instance()->starter?->close();
+            self::instance()->starter = null;
+
+        } catch (Channel\Error\Closed) {}
     }
 
     public function __destruct() {

@@ -46,6 +46,42 @@ interface ParallelWorker {
     public function start(...$args): void;
 
     /**
+     * Associates a text with a named placeholder.
+     *
+     * @param  string  $message  The text to associate with the placeholder
+     * @param  string  $name  The name of the placeholder
+     */
+    public function setMessage(string $message, string $name = 'message'): void;
+
+    /**
+     * Advances the progress output X steps.
+     *
+     * @param  int  $steps  Number of steps to advance
+     */
+    public function advance(int $steps = 1): void;
+
+    /**
+     * Moves the progress output to a specific step.
+     *
+     * @param  int  $step  Step to move progress to
+     */
+    public function setProgress(int $step): void;
+
+    /**
+     * Outputs the current progress string.
+     */
+    public function display(): void;
+
+    /**
+     * Removes the progress bar from the current line.
+     *
+     * This is useful if you wish to write some output
+     * while a progress bar is running.
+     * Call display() to show the progress bar again.
+     */
+    public function clear(): void;
+
+    /**
      * @return ?float Time when Worker started processing the Task, null if Worker didn't start yet
      */
     public function getStartedAt(): ?float;

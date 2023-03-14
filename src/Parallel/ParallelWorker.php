@@ -2,6 +2,9 @@
 
 namespace HDSSolutions\Console\Parallel;
 
+use HDSSolutions\Console\Parallel\Internals\Messages\ProgressBarActionMessage;
+use HDSSolutions\Console\Parallel\Internals\Messages\StatsReportMessage;
+use parallel\Channel;
 use RuntimeException;
 use Throwable;
 
@@ -12,6 +15,16 @@ abstract class ParallelWorker implements Contracts\ParallelWorker {
      * @see Contracts\ParallelWorker::STATES
      */
     private int $state = self::STATE_New;
+
+    /**
+     * @var string Worker Identifier
+     */
+    private string $identifier;
+
+    /**
+     * @var Channel|null Channel of communication between Task and ProgressBar
+     */
+    private ?Channel $progressBarChannel = null;
 
     /**
      * @var float Time when process started
@@ -30,6 +43,15 @@ abstract class ParallelWorker implements Contracts\ParallelWorker {
 
     final public function getState(): int {
         return $this->state;
+    }
+
+    final public function connectProgressBar(string $uuid, string $identifier): bool {
+        // store worker identifier
+        $this->identifier = $identifier;
+        // connect to channel
+        $this->progressBarChannel = Channel::open(sprintf('progress-bar@%s', $uuid));
+
+        return true;
     }
 
     final public function start(...$args): void {
@@ -54,6 +76,26 @@ abstract class ParallelWorker implements Contracts\ParallelWorker {
      */
     abstract protected function process(): mixed;
 
+    final public function setMessage(string $message, string $name = 'message'): void {
+        $this->newProgressBarAction(__FUNCTION__, $message, $name);
+    }
+
+    final public function advance(int $steps = 1): void {
+        $this->newProgressBarAction(__FUNCTION__, $steps);
+    }
+
+    final public function setProgress(int $step): void {
+        $this->newProgressBarAction(__FUNCTION__, $step);
+    }
+
+    final public function display(): void {
+        $this->newProgressBarAction(__FUNCTION__);
+    }
+
+    final public function clear(): void {
+        $this->newProgressBarAction(__FUNCTION__);
+    }
+
     final public function getStartedAt(): ?float {
         return $this->started_at ?? null;
     }
@@ -68,6 +110,17 @@ abstract class ParallelWorker implements Contracts\ParallelWorker {
         }
 
         return new ProcessedTask(get_class($this), $this->result);
+    }
+
+    private function newProgressBarAction(string $action, ...$args): void {
+        $this->progressBarChannel->send(new StatsReportMessage(
+            worker_id:    $this->identifier,
+            memory_usage: memory_get_usage(),
+        ));
+        $this->progressBarChannel->send(new ProgressBarActionMessage(
+            action: $action,
+            args:   $args,
+        ));
     }
 
 }
