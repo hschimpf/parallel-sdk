@@ -2,6 +2,7 @@
 
 namespace HDSSolutions\Console\Parallel;
 
+use Closure;
 use HDSSolutions\Console\Parallel\Internals\Messages\ProgressBarActionMessage;
 use HDSSolutions\Console\Parallel\Internals\Messages\StatsReportMessage;
 use parallel\Channel;
@@ -22,9 +23,9 @@ abstract class ParallelWorker implements Contracts\ParallelWorker {
     private string $identifier;
 
     /**
-     * @var Channel|null Channel of communication between Task and ProgressBar
+     * @var Channel|Closure|null Channel of communication between Task and ProgressBar
      */
-    private ?Channel $progressBarChannel = null;
+    private Channel | Closure | null $progressBarChannel = null;
 
     /**
      * @var float Time when process started
@@ -45,7 +46,13 @@ abstract class ParallelWorker implements Contracts\ParallelWorker {
         return $this->state;
     }
 
-    final public function connectProgressBar(string $uuid, string $identifier): bool {
+    final public function connectProgressBar(string | Closure $uuid, string $identifier = null): bool {
+        if ( !extension_loaded('parallel')) {
+            $this->progressBarChannel = $uuid;
+
+            return true;
+        }
+
         // store worker identifier
         $this->identifier = $identifier;
         // connect to channel
@@ -113,14 +120,24 @@ abstract class ParallelWorker implements Contracts\ParallelWorker {
     }
 
     private function newProgressBarAction(string $action, ...$args): void {
-        $this->progressBarChannel->send(new StatsReportMessage(
-            worker_id:    $this->identifier,
-            memory_usage: memory_get_usage(),
-        ));
-        $this->progressBarChannel->send(new ProgressBarActionMessage(
-            action: $action,
-            args:   $args,
-        ));
+        // check if parallel is available
+        if (extension_loaded('parallel')) {
+            // report memory usage
+            $this->progressBarChannel->send(new StatsReportMessage(
+                worker_id:    $this->identifier,
+                memory_usage: memory_get_usage(),
+            ));
+            // request ProgressBar action
+            $this->progressBarChannel->send(new ProgressBarActionMessage(
+                action: $action,
+                args:   $args,
+            ));
+
+            return;
+        }
+
+        // redirect action to ProgressBar executor
+        ($this->progressBarChannel)($action, $args);
     }
 
 }

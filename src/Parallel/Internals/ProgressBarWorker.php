@@ -114,6 +114,8 @@ final class ProgressBarWorker extends ParallelWorker {
         if ( !$this->progressBarStarted) {
             // start Worker ProgressBar
             $this->progressBar->start($steps);
+            $this->progressBarStarted = true;
+
         } else {
             // update steps
             $this->progressBar->setMaxSteps($steps);

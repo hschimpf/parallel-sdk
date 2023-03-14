@@ -15,6 +15,7 @@ use parallel\Events\Event\Type;
 use parallel\Future;
 use parallel\Runtime;
 use RuntimeException;
+use Symfony\Component\Console\Helper\Helper;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Throwable;
@@ -52,6 +53,21 @@ final class Scheduler {
     private ?ProgressBar $progressBar = null;
 
     /**
+     * @var bool Flag to identify if ProgressBar is already started (non-threaded)
+     */
+    private bool $progressBarStarted = false;
+
+    /**
+     * @var array Memory usage stats (non-threaded)
+     */
+    private array $memory_stats = [ 'current' => 0, 'peak' => 0 ];
+
+    /**
+     * @var array Total of items processed per second (non-threaded)
+     */
+    private array $items = [];
+
+    /**
      * @var Future|null Thread controlling the ProgressBar
      */
     private ?Future $progressBarThread = null;
@@ -78,6 +94,19 @@ final class Scheduler {
     public static function registerWorkerWithProgressBar(RegisteredWorker $registered_worker, int $steps = 0): void {
         self::instance()->initProgressBar();
 
+        if ( !extension_loaded('parallel')) {
+            // check if ProgressBar isn't already started
+            if ( !self::instance()->progressBarStarted) {
+                // start ProgressBar
+                self::instance()->progressBar->start($steps);
+                self::instance()->progressBarStarted = true;
+
+            } else {
+                // update steps
+                self::instance()->progressBar->setMaxSteps($steps);
+            }
+        }
+
         // register Worker ProgressBar
         self::instance()->progressBarChannel?->send(new ProgressBarRegistrationMessage(
             worker: $registered_worker->getWorkerClass(),
@@ -91,7 +120,7 @@ final class Scheduler {
 
         // start a normal ProgressBar if parallel isn't available (non-threaded)
         if ( !extension_loaded('parallel')) {
-            // TODO non-threaded
+            // create a non-threaded ProgressBar instance
             $this->progressBar = $this->createProgressBarInstance();
             return;
         }
@@ -128,16 +157,19 @@ final class Scheduler {
     private function createProgressBarInstance(): ProgressBar {
         $progressBar = new ProgressBar(new ConsoleOutput());
 
-        // set initial parameters
+        // configure ProgressBar settings
         $progressBar->setBarWidth( 80 );
         $progressBar->setRedrawFrequency( 100 );
         $progressBar->minSecondsBetweenRedraws( 0.1 );
         $progressBar->maxSecondsBetweenRedraws( 0.2 );
         $progressBar->setFormat(" %current% of %max%: %message%\n".
                              " [%bar%] %percent:3s%%\n".
-                             " elapsed: %elapsed:6s%, remaining: %remaining:-6s%, %items_per_second% items/s\n".
+                             " elapsed: %elapsed:6s%, remaining: %remaining:-6s%, %items_per_second% items/s".(extension_loaded('parallel') ? "\n" : ',').
                              " memory: %threads_memory%\n");
+        // set initial values
         $progressBar->setMessage('Starting...');
+        $progressBar->setMessage('??', 'items_per_second');
+        $progressBar->setMessage('??', 'threads_memory');
 
         return $progressBar;
     }
@@ -297,22 +329,78 @@ final class Scheduler {
                 ]);
 
             } else {
+                // get registered worker
+                $registered_worker = $pending_task->getRegisteredWorker();
                 // get Worker class to instantiate
-                $worker_class = $pending_task->getRegisteredWorker()->getWorkerClass();
+                $worker_class = $registered_worker->getWorkerClass();
+
                 /** @var ParallelWorker $worker Instance of the Worker */
-                $worker = new $worker_class();
+                $worker = new $worker_class(...$registered_worker->getArgs());
+                // build task params
+                $params = $worker instanceof Worker
+                    // process task using local Worker
+                    ? [ $registered_worker->getClosure(), ...$pending_task->getData() ]
+                    // process task using user Worker
+                    : [ ...$pending_task->getData() ];
+
+                // check if worker has ProgressBar enabled
+                if ($registered_worker->hasProgressEnabled()) {
+                    // connect worker to ProgressBar
+                    $worker->connectProgressBar(function(string $action, array $args) {
+                        // update stats
+                        if ($action === 'advance') {
+                            // count processed item
+                            $this->items[ time() ] = ($this->items[ time() ] ?? 0) + 1;
+                        }
+                        // update ProgressBar memory usage report
+                        $this->progressBar->setMessage($this->getMemoryUsage(), 'threads_memory');
+                        // update ProgressBar items per second report
+                        $this->progressBar->setMessage($this->getItemsPerSecond(), 'items_per_second');
+
+                        // execute progress bar action
+                        $this->progressBar->$action(...$args);
+                    });
+                }
+
                 // process task using worker
-                $worker->start(...$pending_task->getData());
+                $worker->start(...$params);
 
                 // store Worker result
                 $this->futures[] = $worker->getProcessedTask();
             }
 
             // wait for thread to start
-            if ($this->starter?->recv() !== true) {
+            if (($this->starter?->recv() ?? true) !== true) {
                 throw new RuntimeException('Failed to start Task');
             }
         }
+    }
+
+    private function getMemoryUsage(): string {
+        // update memory usage for this thread
+        $this->memory_stats['current'] = memory_get_usage(true);
+        // update peak memory usage
+        if ($this->memory_stats['current'] > $this->memory_stats['peak']) {
+            $this->memory_stats['peak'] = $this->memory_stats['current'];
+        }
+
+        // current memory used
+        $main = Helper::formatMemory($this->memory_stats['current']);
+        // peak memory usage
+        $peak = Helper::formatMemory($this->memory_stats['peak']);
+
+        return "$main, ↑ $peak";
+    }
+
+    private function getItemsPerSecond(): string {
+        // check for empty list
+        if (empty($this->items)) return '0';
+
+        // keep only last 15s for average
+        $this->items = array_slice($this->items, -15, preserve_keys: true);
+
+        // return the average of items processed per second
+        return '~'.number_format(floor(array_sum($this->items) / count($this->items) * 100) / 100, 2);
     }
 
     private function getMaxCpuUsage(): int {
