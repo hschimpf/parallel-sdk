@@ -115,6 +115,57 @@ foreach (Scheduler::getProcessedTasks() as $processed_task) {
 }
 ```
 
+### ProgressBar
+
+#### Requeriments
+- `symfony/console` package
+- Enable a ProgressBar for the worker calling the `withProgress()` method.
+
+```php
+use HDSSolutions\Console\Parallel\Scheduler;
+
+$tasks = range(1, 10);
+
+$worker = new ExampleWorker();
+Scheduler::using($worker)
+    ->withProgress(steps: count($tasks);
+```
+
+#### Usage from Worker
+Available methods are:
+- `setMessage(string $message)`
+- `advance(int $steps)`
+- `setProgress(int $step)`
+- `display()`
+- `clear()`
+
+```php
+use HDSSolutions\Console\Parallel\ParallelWorker;
+
+final class ExampleWorker extends ParallelWorker {
+
+    protected function process(int $number = 0): int {
+        // example process
+        $microseconds = random_int(100, 500);
+        $this->setMessage(sprintf("ExampleWorker >> Hello from task #%u, I'll wait %sms", $number, $microseconds));
+        usleep($microseconds * 1000);
+        $this->advance();
+        // end example process
+
+        return $number;
+    }
+
+}
+```
+
+#### Example output
+```bash
+ 28 of 52: ExampleWorker >> Hello from task #123, I'll wait 604ms
+ [===========================================>------------------------------------]  53%
+ elapsed: 2 secs, remaining: 2 secs, ~13.50 items/s
+ memory: 562 KiB, threads: 12x ~474 KiB, Σ 5,6 MiB ↑ 5,6 MiB
+```
+
 ## Graceful close all resources
 This method will close all resources used internally by the `Scheduler` instance.
 ```php
