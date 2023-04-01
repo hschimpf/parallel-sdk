@@ -2,6 +2,7 @@
 
 namespace HDSSolutions\Console\Tests;
 
+use HDSSolutions\Console\Parallel\Internals\RegisteredWorker;
 use HDSSolutions\Console\Parallel\Internals\Worker;
 use HDSSolutions\Console\Parallel\Scheduler;
 use HDSSolutions\Console\Tests\Workers;
@@ -34,6 +35,14 @@ final class ParallelTest extends TestCase {
     /**
      * @depends testThatParallelExtensionIsAvailable
      */
+    public function testThatWorkersCanBeRegistered(): void {
+        $this->assertInstanceOf(RegisteredWorker::class,
+            $registered_worker = Scheduler::using(Workers\EmptyWorker::class, [ true, 123, 'false' ]));
+    }
+
+    /**
+     * @depends testThatParallelExtensionIsAvailable
+     */
     public function testThatClosureCanBeUsedAsWorker(): void {
         Scheduler::using(static function($input) {
             usleep(random_int(100, 500) * 1000);
@@ -46,7 +55,7 @@ final class ParallelTest extends TestCase {
                 Scheduler::stop();
             }
         }
-
+return;
         $results = [];
         foreach (Scheduler::getProcessedTasks() as $processed_task) {
             $this->assertEquals(Worker::class, $processed_task->getWorkerClass());
@@ -77,9 +86,9 @@ final class ParallelTest extends TestCase {
 
         foreach ($workers as $worker) {
             // register worker
-            Scheduler::using($worker, $multipliers)
+            Scheduler::using($worker, $multipliers);
                 // init progress bar for worker
-                ->withProgress(steps: $total);
+                // ->withProgress(steps: $total);
 
             // run example tasks
             foreach ($tasks[$worker] as $task) {

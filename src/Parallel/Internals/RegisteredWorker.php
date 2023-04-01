@@ -19,8 +19,12 @@ final class RegisteredWorker {
         private array $args = [],
     ) {}
 
-    public function getIdentifier(): int {
-        return $this->identifier;
+    public function getIdentifier(): string {
+        if ($this->getClosure() === null) {
+            return $this->getWorkerClass();
+        }
+
+        return sprintf('%s@%.0u', $this->getWorkerClass(), $this->identifier);
     }
 
     /**

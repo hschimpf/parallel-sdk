@@ -111,15 +111,21 @@ abstract class ParallelWorker implements Contracts\ParallelWorker {
         return $this->finished_at ?? null;
     }
 
+    /** @deprecated Get Task process result through {@see ParallelWorker::getResult()} */
     final public function getProcessedTask(): ProcessedTask {
+        return new ProcessedTask(get_class($this), $this->getResult());
+    }
+
+    final public function getResult(): mixed {
         if ($this->state !== self::STATE_Finished) {
-            throw new RuntimeException('This Worker hasn\'t been started');
+            throw new RuntimeException('This Worker hasn\'t been yet processed the task');
         }
 
-        return new ProcessedTask(get_class($this), $this->result);
+        return $this->result;
     }
 
     private function newProgressBarAction(string $action, ...$args): void {
+        return;
         // check if parallel is available
         if (extension_loaded('parallel')) {
             // report memory usage

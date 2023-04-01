@@ -5,10 +5,13 @@ namespace HDSSolutions\Console\Parallel;
 use Closure;
 use Exception;
 use Generator;
+use HDSSolutions\Console\Parallel\Exceptions\ParallelException;
 use HDSSolutions\Console\Parallel\Internals\Messages\ProgressBarRegistrationMessage;
-use HDSSolutions\Console\Parallel\Internals\PendingTask;
+use HDSSolutions\Console\Parallel\Internals\Commands;
+use HDSSolutions\Console\Parallel\Internals\Task;
 use HDSSolutions\Console\Parallel\Internals\ProgressBarWorker;
 use HDSSolutions\Console\Parallel\Internals\RegisteredWorker;
+use HDSSolutions\Console\Parallel\Internals\Runner;
 use HDSSolutions\Console\Parallel\Internals\Worker;
 use parallel\Channel;
 use parallel\Events\Event\Type;
@@ -19,6 +22,7 @@ use Symfony\Component\Console\Helper\Helper;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Throwable;
+use parallel;
 use function parallel\run;
 
 final class Scheduler {
@@ -35,7 +39,7 @@ final class Scheduler {
     /** @var ?Channel Channel to wait threads start */
     private ?Channel $starter = null;
 
-    /** @var PendingTask[] Collection of pending tasks */
+    /** @var Task[] Collection of pending tasks */
     private array $pendingTasks = [];
 
     /** @var Future[] Collection of running tasks */
@@ -77,11 +81,24 @@ final class Scheduler {
      */
     private ?Channel $progressBarChannel = null;
 
+    private Future $runner;
+
     /**
      * Disable public constructor, usage only available through singleton instance
      */
     private function __construct() {
         $this->uuid = substr(md5(uniqid(self::class, true)), 0, 16);
+
+        if ( !extension_loaded('parallel')) return;
+
+        // start main thread
+        $this->runner = (new Runtime(PARALLEL_AUTOLOADER))
+            ->run(static function($uuid): void {
+                // create runner instance
+                $runner = new Internals\Runner($uuid);
+                // watch for events
+                $runner->watch();
+            }, [ $this->uuid ]);
     }
 
     /**
@@ -183,21 +200,64 @@ final class Scheduler {
      * @return RegisteredWorker
      */
     public static function using(string | Closure $worker, ...$args): RegisteredWorker {
-        // convert Closure to ParallelWorker instance
-        self::instance()->registered_workers[] = $registered_worker = new RegisteredWorker(
-            identifier:   count(self::instance()->registered_workers),
-            worker_class: is_string($worker) ? $worker : Worker::class,
-            closure:      $worker instanceof Closure ? $worker : null,
-            args:         $args,
-        );
+        // check if worker is already registered
+        if (is_string($worker) && false !== $registered_worker = self::instance()->getRegisteredWorker($worker)) {
+            if ( !empty($args)) {
+                // args must not be defined if worker already exists
+                throw new RuntimeException(sprintf('Worker "%s" is already defined, you can\'t specify new constructor parameters!', $worker));
+            }
 
-        return $registered_worker;
+            return $registered_worker;
+        }
+
+        return self::instance()->registerWorker($worker, $args);
+    }
+
+    private function getRegisteredWorker(string $worker): RegisteredWorker | false {
+        $this->send(new Commands\GetRegisteredWorkerMessage($worker));
+
+        return $this->recv();
+    }
+
+    private function registerWorker(string | Closure $worker, array $args): RegisteredWorker {
+        $this->send(new Commands\RegisterWorkerMessage($worker, $args));
+
+        return $this->recv();
+    }
+
+    private ?Channel $input = null;
+    private ?Channel $output = null;
+
+    private function send(mixed $value): void {
+        // open channel if not already opened
+        while ($this->input === null) {
+            // try to open input channel
+            try { $this->input = Channel::open(Runner::class.'@input');
+            // wait 10ms on failure
+            } catch (Channel\Error\Existence) { usleep(10_000); }
+        }
+
+        $this->input->send($value);
+    }
+
+    private function recv(): mixed {
+        // open channel if not already opened
+        while ($this->output === null) {
+            // try to open output channel
+            try { $this->output = Channel::open(Runner::class.'@output');
+            // wait 10ms on failure
+            } catch (Channel\Error\Existence) { usleep(10_000); }
+        }
+
+        return $this->output->recv();
     }
 
     /**
      * Schedule worker task for execution in parallel, passing ...$data at execution time
      *
      * @param  mixed  ...$data  Array of arguments to be passed to worker task at execution time
+     *
+     * @return int Queued Task identifier
      *
      * @throws Runtime\Error\Closed if \parallel\Runtime was closed
      * @throws Runtime\Error\IllegalFunction if task is a closure created from an internal function
@@ -208,7 +268,19 @@ final class Scheduler {
      * @see  Runtime::run() for more details
      * @link https://www.php.net/manual/en/parallel.run
      */
-    public static function runTask(mixed ...$data): void {
+    public static function runTask(mixed ...$data): int {
+        self::instance()->send(new Commands\QueueTaskMessage($data));
+
+        // get queued task and check if there was an exception thrown
+        if (($task_id = self::instance()->recv()) instanceof ParallelException) {
+            // redirect exception
+            throw new RuntimeException($task_id->getMessage());
+        }
+
+        return $task_id;
+
+        $todo = true;
+
         // check if a worker was defined
         if (($worker_id = count(self::instance()->registered_workers) - 1) < 0) {
             // reject task scheduling, no worker is defined
@@ -218,7 +290,7 @@ final class Scheduler {
         // get registered worker
         $registered_worker = self::instance()->registered_workers[$worker_id];
         // register a pending task linked with the registered Worker
-        self::instance()->pendingTasks[] = new PendingTask($registered_worker, $data);
+        self::instance()->pendingTasks[] = new Task($registered_worker, $data);
 
         do {
             // remove finished tasks
@@ -292,7 +364,7 @@ final class Scheduler {
             // process task inside a thread (if parallel extension is available)
             if (extension_loaded('parallel')) {
                 // parallel available, process task inside a thread
-                $this->futures[] = run(static function(string $uuid, PendingTask $pending_task): ProcessedTask {
+                $this->futures[] = run(static function(string $uuid, Task $pending_task): ProcessedTask {
                     // get registered worker
                     $registered_worker = $pending_task->getRegisteredWorker();
                     // get Worker class to instantiate

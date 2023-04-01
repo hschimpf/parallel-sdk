@@ -92,6 +92,11 @@ interface ParallelWorker {
     public function getFinishedAt(): ?float;
 
     /**
+     * @return mixed Processed Task result
+     */
+    public function getResult(): mixed;
+
+    /**
      * Returns the processed task
      *
      * @return ProcessedTask Processed task
