@@ -40,6 +40,11 @@ interface Task {
     public function getIdentifier(): int;
 
     /**
+     * @return string Worker class assigned to process this Task
+     */
+    public function getWorkerClass(): string;
+
+    /**
      * @return int Identifier of the registered worker
      */
     public function getWorkerId(): int;

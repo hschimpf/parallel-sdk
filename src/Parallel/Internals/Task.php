@@ -18,17 +18,24 @@ final class Task implements Contracts\Task {
     private mixed $result = null;
 
     /**
+     * @param  int  $identifier  Identifier of the Task
+     * @param  string  $worker_class  Worker assigned to process this Task
      * @param  int  $worker_id  Identifier of the registered worker
      * @param  mixed  $data  Data of the Task
      */
     public function __construct(
         private int $identifier,
+        private string $worker_class,
         private int $worker_id,
         private mixed $data = null,
     ) {}
 
     public function getIdentifier(): int {
         return $this->identifier;
+    }
+
+    public function getWorkerClass(): string {
+        return $this->worker_class;
     }
 
     public function getWorkerId(): int {
@@ -39,6 +46,7 @@ final class Task implements Contracts\Task {
         return $this->data;
     }
 
+    /** @internal */
     public function setState(int $state): self {
         $this->state = $state;
 
@@ -49,6 +57,7 @@ final class Task implements Contracts\Task {
         return $this->state;
     }
 
+    /** @internal */
     public function setResult(mixed $result): self {
         $this->result = $result;
 
