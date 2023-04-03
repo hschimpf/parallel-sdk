@@ -13,6 +13,7 @@ use HDSSolutions\Console\Parallel\Internals\ProgressBarWorker;
 use HDSSolutions\Console\Parallel\Internals\RegisteredWorker;
 use HDSSolutions\Console\Parallel\Internals\Runner;
 use parallel\Channel;
+use parallel\Events\Event;
 use parallel\Events\Event\Type;
 use parallel\Future;
 use parallel\Runtime;
@@ -366,7 +367,7 @@ final class Scheduler {
     /**
      * Ensures that everything gets closed
      */
-    public static function disconnect(): void {
+    private static function disconnect(): void {
         // remove all Tasks
         self::removeTasks();
 
@@ -375,7 +376,9 @@ final class Scheduler {
 
         try {
             // stop runner
-            self::instance()->runner->cancel();
+            self::instance()->send(Event\Type::Close);
+            // gracefully join
+            self::instance()->recv();
 
             // send message to ProgressBar thread to stop execution
             self::instance()->progressBarChannel?->send(Type::Close);
