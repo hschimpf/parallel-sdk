@@ -135,13 +135,17 @@ final class Runner {
         return $this->send($task->getIdentifier());
     }
 
-    private function getTasks(): array {
+    private function getTasks(): array | false {
+        if ( !PARALLEL_EXT_LOADED) {
+            return $this->tasks;
+        }
+
         foreach ($this->tasks as $task) {
             $this->tasks_link->send($task);
         }
         $this->tasks_link->send(false);
 
-        return $this->tasks;
+        return false;
     }
 
     private function removeTasks(): bool {
