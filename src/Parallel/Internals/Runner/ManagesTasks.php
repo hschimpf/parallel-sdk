@@ -66,12 +66,11 @@ trait ManagesTasks {
         $task = $this->tasks[$task_id = array_shift($this->pending_tasks)];
         $task->setState(Task::STATE_Starting);
 
-        // create starter channel to wait threads start event
-        $this->starter ??= extension_loaded('parallel')
-            ? Channel::make(sprintf('starter@%s', $this->uuid)) : null;
-
         // process task inside a thread (if parallel extension is available)
         if (extension_loaded('parallel')) {
+            // create starter channel to wait threads start event
+            $this->starter ??= Channel::make(sprintf('starter@%s', $this->uuid));
+
             // parallel available, process task inside a thread
             $this->running_tasks[$task_id] = parallel\run(static function(string $uuid, int $task_id, RegisteredWorker $registered_worker, Task $task): array {
                 // get Worker class to instantiate
@@ -111,17 +110,56 @@ trait ManagesTasks {
                 $task,
             ]);
 
+            // wait for thread to start
+            if (($this->starter?->recv() ?? true) !== true) {
+                throw new RuntimeException('Failed to start Task');
+            }
+
+            // update Task state
+            $task->setState(Task::STATE_Processing);
+
         } else {
-            // TODO non-threaded implementation
-            $TODO = true;
-        }
+            // get registered worker
+            $registered_worker = $this->workers[$task->getWorkerId()];
+            // get Worker class to instantiate
+            $worker_class = $registered_worker->getWorkerClass();
 
-        // wait for thread to start
-        if (($this->starter?->recv() ?? true) !== true) {
-            throw new RuntimeException('Failed to start Task');
-        }
+            /** @var ParallelWorker $worker Instance of the Worker */
+            $worker = new $worker_class(...$registered_worker->getArgs());
+            // build task params
+            $params = $worker instanceof Worker
+                // process task using local Worker
+                ? [ $registered_worker->getClosure(), ...$task->getData() ]
+                // process task using user Worker
+                : [ ...$task->getData() ];
 
-        $task->setState(Task::STATE_Processing);
+            // check if worker has ProgressBar enabled
+            if ($registered_worker->hasProgressEnabled()) {
+                // connect worker to ProgressBar
+                $worker->connectProgressBar(function(string $action, array $args) {
+                    // update stats
+                    if ($action === 'advance') {
+                        // count processed item
+                        $this->items[ time() ] = ($this->items[ time() ] ?? 0) + 1;
+                    }
+                    // update ProgressBar memory usage report
+                    $this->progressBar->setMessage($this->getMemoryUsage(), 'threads_memory');
+                    // update ProgressBar items per second report
+                    $this->progressBar->setMessage($this->getItemsPerSecond(), 'items_per_second');
+
+                    // execute progress bar action
+                    $this->progressBar->$action(...$args);
+                });
+            }
+
+            $task->setState(Task::STATE_Processing);
+
+            // process task using worker
+            $worker->start(...$params);
+
+            // store Worker result
+            $this->running_tasks[] = [ $task_id, $worker->getResult() ];
+        }
     }
 
 }
