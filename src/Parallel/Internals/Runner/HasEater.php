@@ -14,6 +14,8 @@ trait HasEater {
     private Future $eater;
 
     private function startEater(): void {
+        if ( !extension_loaded('parallel')) return;
+
         // run an eater to keep updating states
         $this->eater = (new Runtime(PARALLEL_AUTOLOADER))->run(static function(): void {
             $input = Channel::open(Runner::class.'@input');
@@ -23,7 +25,7 @@ trait HasEater {
                 // send an Update message
                 $input->send(new Commands\UpdateMessage());
             // until we receive a stop signal
-            } while (Event\Type::Close !== $hasPendingTasks = $output->recv());
+            } while (Event\Type::Close !== $output->recv());
         });
     }
 

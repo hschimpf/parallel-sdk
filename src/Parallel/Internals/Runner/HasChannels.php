@@ -22,6 +22,8 @@ trait HasChannels {
     private Channel $eater_link;
 
     private function openChannels(): void {
+        if ( !extension_loaded('parallel')) return;
+
         // channels to receive events and join
         $this->input = Channel::make(self::class.'@input');
         $this->output = Channel::make(self::class.'@output');
@@ -33,9 +35,13 @@ trait HasChannels {
         return $this->input->recv();
     }
 
-    protected function send(mixed $value, bool $eater = false): void {
-        if ($eater) $this->eater_link->send($value);
-        else $this->output->send($value);
+    protected function send(mixed $value, bool $eater = false): mixed {
+        if (extension_loaded('parallel')) {
+            if ($eater) $this->eater_link->send($value);
+            else $this->output->send($value);
+        }
+
+        return $value;
     }
 
     protected function release(bool $eater = false): void {
