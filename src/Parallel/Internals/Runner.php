@@ -92,17 +92,18 @@ final class Runner {
         $this->selectWorker($idx)->send($registered_worker);
     }
 
-    private function queueTask(array $data): void {
-        if (null === $this->getSelectedWorker()) {
+    private function queueTask(array $data): int {
+        if (null === $worker = $this->getSelectedWorker()) {
             // reject task scheduling, no worker is defined
             throw new RuntimeException('No worker is defined');
         }
 
         // register task
         $this->tasks[] = $task = new Task(
-            identifier: count($this->tasks),
-            worker_id:  $this->selected_worker,
-            data:       $data,
+            identifier:   count($this->tasks),
+            worker_class: $worker->getWorkerClass(),
+            worker_id:    $this->selected_worker,
+            data:         $data,
         );
         // and put identifier on the pending tasks list
         $this->pending_tasks[] = $task->getIdentifier();
