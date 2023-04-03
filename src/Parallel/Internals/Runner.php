@@ -150,7 +150,7 @@ final class Runner {
         $this->tasks = [];
         $this->pending_tasks = [];
 
-        return true;
+        return $this->send(true);
     }
 
     private function update(): void {
