@@ -37,6 +37,10 @@ trait ManagesTasks {
         return !empty($this->pending_tasks);
     }
 
+    private function hasRunningTasks(): bool {
+        return !empty($this->running_tasks);
+    }
+
     private function cleanFinishedTasks(): void {
         $finished_tasks = [];
         foreach ($this->running_tasks as $idx => $future) {
@@ -46,6 +50,8 @@ trait ManagesTasks {
                 try {
                     // get the result of the process
                     [ $task_id, $result ] = PARALLEL_EXT_LOADED ? $future->value() : $future;
+                    // ignore result if Task was removed, probably through Scheduler::removeTasks()
+                    if (!array_key_exists($task_id, $this->tasks)) continue;
                     // store result and update state of the Task
                     $this->tasks[$task_id]
                         ->setResult($result)

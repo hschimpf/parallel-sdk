@@ -163,10 +163,14 @@ final class Runner {
     }
 
     private function await(): bool {
-        // wait for all tasks to finish processing
-        while ($this->hasPendingTasks()) usleep(25_000);
+        if (PARALLEL_EXT_LOADED) {
+            return $this->send($this->hasPendingTasks() || $this->hasRunningTasks());
+        }
 
-        return true;
+        // wait for all tasks to finish processing
+        while ($this->hasPendingTasks() || $this->hasRunningTasks()) usleep(25_000);
+
+        return $this->send(true);
     }
 
     private function stopRunningTasks(): void {

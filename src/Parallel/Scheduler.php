@@ -291,9 +291,15 @@ final class Scheduler {
         $message = new Commands\WaitTasksCompletionMessage();
 
         if (PARALLEL_EXT_LOADED) {
-            self::instance()->send($message);
+            $has_pending_tasks = false;
+            do {
+                self::instance()->send($message);
+                if ($has_pending_tasks) {
+                    usleep(25_000);
+                }
+            } while ($has_pending_tasks = self::instance()->recv());
 
-            return self::instance()->recv();
+            return true;
         }
 
         return self::instance()->runner->processMessage($message);
