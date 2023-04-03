@@ -66,6 +66,9 @@ final class ParallelTest extends TestCase {
         }
         // tasks results must be the same count
         $this->assertCount(count($tasks), $results);
+
+        // remove all Tasks
+        Scheduler::removeTasks();
     }
 
     /**

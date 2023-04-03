@@ -143,6 +143,15 @@ final class Runner {
         return $this->tasks;
     }
 
+    private function removeTasks(): bool {
+        $this->stopRunningTasks();
+
+        $this->tasks = [];
+        $this->pending_tasks = [];
+
+        return true;
+    }
+
     private function update(): void {
         $this->cleanFinishedTasks();
         while ($this->hasCpuAvailable() && $this->hasPendingTasks()) {

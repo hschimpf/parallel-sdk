@@ -311,6 +311,24 @@ final class Scheduler {
     }
 
     /**
+     * Remove all registered Tasks.<br/>
+     * **IMPORTANT**: This will stop processing Tasks immediately and remove **all** Tasks.
+     *
+     * @return bool
+     */
+    public static function removeTasks(): bool {
+        $message = new Commands\RemoveTasksMessage();
+
+        if (PARALLEL_EXT_LOADED) {
+            self::instance()->send($message);
+
+            return self::instance()->recv();
+        }
+
+        return self::instance()->runner->processMessage($message);
+    }
+
+    /**
      * Stops all running tasks. If force is set to false, waits gracefully for all running tasks to finish execution
      *
      * @param  bool  $force  Flag to force task cancellation
@@ -333,6 +351,9 @@ final class Scheduler {
      * Ensures that everything gets closed
      */
     public static function disconnect(): void {
+        // remove all Tasks
+        self::removeTasks();
+
         // check if extension is loaded
         if ( !PARALLEL_EXT_LOADED) return;
 
