@@ -47,7 +47,7 @@ abstract class ParallelWorker implements Contracts\ParallelWorker {
     }
 
     final public function connectProgressBar(string | Closure $uuid, string $identifier = null): bool {
-        if ( !extension_loaded('parallel')) {
+        if ( !PARALLEL_EXT_LOADED) {
             $this->progressBarChannel = $uuid;
 
             return true;
@@ -127,7 +127,7 @@ abstract class ParallelWorker implements Contracts\ParallelWorker {
     private function newProgressBarAction(string $action, ...$args): void {
         return;
         // check if parallel is available
-        if (extension_loaded('parallel')) {
+        if (PARALLEL_EXT_LOADED) {
             // report memory usage
             $this->progressBarChannel->send(new StatsReportMessage(
                 worker_id:    $this->identifier,

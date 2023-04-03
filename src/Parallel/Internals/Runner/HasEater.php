@@ -14,7 +14,7 @@ trait HasEater {
     private Future $eater;
 
     private function startEater(): void {
-        if ( !extension_loaded('parallel')) return;
+        if ( !PARALLEL_EXT_LOADED) return;
 
         // run an eater to keep updating states
         $this->eater = (new Runtime(PARALLEL_AUTOLOADER))->run(static function(): void {

@@ -58,7 +58,7 @@ final class ParallelTest extends TestCase {
         }
 
         Scheduler::awaitTasksCompletion();
-return;
+
         $results = [];
         foreach (Scheduler::getTasks() as $task) {
             $this->assertEquals(Worker::class, $task->getWorkerClass());
@@ -104,10 +104,10 @@ return;
 
         $results = [];
         // fetch processed tasks and store their results
-        foreach (Scheduler::getProcessedTasks() as $processed_task) {
-            $result = $processed_task->getResult();
+        foreach (Scheduler::getTasks() as $task) {
+            $result = $task->getResult();
             echo sprintf("Task result from #%s => %u\n",
-                $worker_class = $processed_task->getWorkerClass(),
+                $worker_class = $task->getWorkerClass(),
                 $result[1]);
             $results[$worker_class][] = $result;
         }

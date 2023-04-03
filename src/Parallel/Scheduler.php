@@ -66,7 +66,7 @@ final class Scheduler {
      */
     private function __construct() {
         $this->uuid = substr(md5(uniqid(self::class, true)), 0, 16);
-        $this->runner = extension_loaded('parallel')
+        $this->runner = PARALLEL_EXT_LOADED
             // create a runner inside a thread
             ? (new Runtime(PARALLEL_AUTOLOADER))->run(static function($uuid): void {
                 // create runner instance
@@ -89,7 +89,7 @@ final class Scheduler {
     public static function registerWorkerWithProgressBar(RegisteredWorker $registered_worker, int $steps = 0): void {
         self::instance()->initProgressBar();
 
-        if ( !extension_loaded('parallel')) {
+        if ( !PARALLEL_EXT_LOADED) {
             // check if ProgressBar isn't already started
             if ( !self::instance()->progressBarStarted) {
                 // start ProgressBar
@@ -114,7 +114,7 @@ final class Scheduler {
         if ($this->progressBar !== null || $this->progressBarThread !== null) return;
 
         // start a normal ProgressBar if parallel isn't available (non-threaded)
-        if ( !extension_loaded('parallel')) {
+        if ( !PARALLEL_EXT_LOADED) {
             // create a non-threaded ProgressBar instance
             $this->progressBar = $this->createProgressBarInstance();
             return;
@@ -159,7 +159,7 @@ final class Scheduler {
         $progressBar->maxSecondsBetweenRedraws( 0.2 );
         $progressBar->setFormat(" %current% of %max%: %message%\n".
                              " [%bar%] %percent:3s%%\n".
-                             " elapsed: %elapsed:6s%, remaining: %remaining:-6s%, %items_per_second% items/s".(extension_loaded('parallel') ? "\n" : ',').
+                             " elapsed: %elapsed:6s%, remaining: %remaining:-6s%, %items_per_second% items/s".(PARALLEL_EXT_LOADED ? "\n" : ',').
                              " memory: %threads_memory%\n");
         // set initial values
         $progressBar->setMessage('Starting...');
@@ -194,7 +194,7 @@ final class Scheduler {
     private function getRegisteredWorker(string $worker): RegisteredWorker | false {
         $message = new Commands\GetRegisteredWorkerMessage($worker);
 
-        if (extension_loaded('parallel')) {
+        if (PARALLEL_EXT_LOADED) {
             $this->send($message);
 
             return $this->recv();
@@ -206,7 +206,7 @@ final class Scheduler {
     private function registerWorker(string | Closure $worker, array $args): RegisteredWorker {
         $message = new Commands\RegisterWorkerMessage($worker, $args);
 
-        if (extension_loaded('parallel')) {
+        if (PARALLEL_EXT_LOADED) {
             $this->send($message);
 
             return $this->recv();
@@ -261,7 +261,7 @@ final class Scheduler {
     public static function runTask(mixed ...$data): int {
         $message = new Commands\QueueTaskMessage($data);
 
-        if (extension_loaded('parallel')) {
+        if (PARALLEL_EXT_LOADED) {
             self::instance()->send($message);
 
             // get queued task and check if there was an exception thrown
@@ -282,23 +282,13 @@ final class Scheduler {
     public static function awaitTasksCompletion(): bool {
         $message = new Commands\WaitTasksCompletionMessage();
 
-        if (extension_loaded('parallel')) {
+        if (PARALLEL_EXT_LOADED) {
             self::instance()->send($message);
 
             return self::instance()->recv();
         }
 
         return self::instance()->runner->processMessage($message);
-    }
-
-    /**
-     * Returns the result of every processed task
-     *
-     * @return Task[] | Generator Results of processed tasks
-     * @deprecated Use {@see Scheduler::getTasks()} instead
-     */
-    public static function getProcessedTasks(): Generator | array {
-        yield from self::getTasks();
     }
 
     /**
@@ -309,7 +299,7 @@ final class Scheduler {
     public static function getTasks(): Generator | array {
         $message = new Commands\GetTasksMessage();
 
-        if (extension_loaded('parallel')) {
+        if (PARALLEL_EXT_LOADED) {
             self::instance()->send($message);
 
             while (false !== $task = self::instance()->recv()) {
@@ -317,9 +307,7 @@ final class Scheduler {
             }
         }
 
-        while (false !== $task = self::instance()->runner->processMessage($message)) {
-            yield $task;
-        }
+        yield from self::instance()->runner->processMessage($message);
     }
 
     /**
@@ -329,7 +317,7 @@ final class Scheduler {
      */
     public static function stop(bool $force = true): void {
         // if parallel isn't enabled, just finish progress bar and return
-        if ( !extension_loaded('parallel')) {
+        if ( !PARALLEL_EXT_LOADED) {
             // self::instance()->progress->finish();
             return;
         }
@@ -346,7 +334,7 @@ final class Scheduler {
      */
     public static function disconnect(): void {
         // check if extension is loaded
-        if ( !extension_loaded('parallel')) return;
+        if ( !PARALLEL_EXT_LOADED) return;
 
         try {
             // stop runner

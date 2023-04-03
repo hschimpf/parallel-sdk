@@ -46,6 +46,7 @@ interface Task {
 
     /**
      * @return int Identifier of the registered worker
+     * @internal
      */
     public function getWorkerId(): int;
 

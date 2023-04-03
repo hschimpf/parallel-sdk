@@ -125,7 +125,7 @@ final class Runner {
         $this->pending_tasks[] = $task->getIdentifier();
 
         // if we are on a non-threaded environment,
-        if ( !extension_loaded('parallel')) {
+        if ( !PARALLEL_EXT_LOADED) {
             // just process the Task
             $this->startNextPendingTask();
             // clean finished Task
@@ -133,6 +133,14 @@ final class Runner {
         }
 
         return $this->send($task->getIdentifier());
+    }
+
+    private function getTasks(): array {
+        foreach ($this->tasks as $task) {
+            $this->send($task);
+        }
+
+        return $this->tasks;
     }
 
     private function update(): void {

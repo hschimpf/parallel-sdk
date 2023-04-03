@@ -2,6 +2,9 @@
 
 namespace HDSSolutions\Console\Parallel;
 
+/**
+ * @deprecated
+ */
 final class ProcessedTask {
 
     /**

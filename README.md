@@ -22,7 +22,7 @@ composer require hds-solutions/parallel-sdk
 ## Usage
 Firstly, you need to set the bootstrap file for parallel. Setting the composer's autoloader is enough. See reference [#1](#references) for more info.
 ```php
-// check if extension is loaded to allow deploying even in envorinments where parallel isn't installed
+// check if extension is loaded to allow deploying even in environments where parallel isn't installed
 if (extension_loaded('parallel')) {
     // set the path to composer's autoloader
     parallel\bootstrap(__DIR__.'/vendor/autoload.php');

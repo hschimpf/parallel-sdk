@@ -41,11 +41,11 @@ trait ManagesTasks {
         $finished_tasks = [];
         foreach ($this->running_tasks as $idx => $future) {
             // check if future is already done working
-            if ( !extension_loaded('parallel') || $future->done()) {
+            if ( !PARALLEL_EXT_LOADED || $future->done()) {
                 // store the ProcessedTask
                 try {
                     // get the result of the process
-                    [ $task_id, $result ] = extension_loaded('parallel') ? $future->value() : $future;
+                    [ $task_id, $result ] = PARALLEL_EXT_LOADED ? $future->value() : $future;
                     // store result and update state of the Task
                     $this->tasks[$task_id]
                         ->setResult($result)
@@ -67,7 +67,7 @@ trait ManagesTasks {
         $task->setState(Task::STATE_Starting);
 
         // process task inside a thread (if parallel extension is available)
-        if (extension_loaded('parallel')) {
+        if (PARALLEL_EXT_LOADED) {
             // create starter channel to wait threads start event
             $this->starter ??= Channel::make(sprintf('starter@%s', $this->uuid));
 
