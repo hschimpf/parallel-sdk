@@ -367,7 +367,7 @@ final class Scheduler {
     /**
      * Ensures that everything gets closed
      */
-    private static function disconnect(): void {
+    public function __destruct() {
         // remove all Tasks
         self::removeTasks();
 
@@ -401,11 +401,6 @@ final class Scheduler {
             self::instance()->starter = null;
 
         } catch (Channel\Error\Closed) {}
-    }
-
-    public function __destruct() {
-        // ensure that we execute disconnect
-        self::disconnect();
     }
 
 }
