@@ -2,8 +2,6 @@
 
 namespace HDSSolutions\Console\Parallel\Contracts;
 
-use HDSSolutions\Console\Parallel\ProcessedTask;
-
 interface ParallelWorker {
 
     /**
@@ -95,12 +93,5 @@ interface ParallelWorker {
      * @return mixed Processed Task result
      */
     public function getResult(): mixed;
-
-    /**
-     * Returns the processed task
-     *
-     * @return ProcessedTask Processed task
-     */
-    public function getProcessedTask(): ProcessedTask;
 
 }
