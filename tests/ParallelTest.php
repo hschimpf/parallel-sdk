@@ -24,26 +24,17 @@ final class ParallelTest extends TestCase {
         }
     }
 
-    /**
-     * @depends testThatParallelExtensionIsAvailable
-     */
     public function testThatWorkerMustBeDefinedValidates(): void {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('No worker is defined');
         Scheduler::runTask(123);
     }
 
-    /**
-     * @depends testThatParallelExtensionIsAvailable
-     */
     public function testThatWorkersCanBeRegistered(): void {
         $this->assertInstanceOf(RegisteredWorker::class,
             Scheduler::using(Workers\EmptyWorker::class, [ true, 123, 'false' ]));
     }
 
-    /**
-     * @depends testThatParallelExtensionIsAvailable
-     */
     public function testThatClosureCanBeUsedAsWorker(): void {
         Scheduler::using(static function($input) {
             usleep(random_int(100, 500) * 1000);
@@ -71,9 +62,6 @@ final class ParallelTest extends TestCase {
         Scheduler::removeTasks();
     }
 
-    /**
-     * @depends testThatParallelExtensionIsAvailable
-     */
     public function testParallel(): void {
         $workers = [
             Workers\TestWorker::class,
