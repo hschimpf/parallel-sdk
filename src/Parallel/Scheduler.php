@@ -81,24 +81,27 @@ final class Scheduler {
      */
     private ?Channel $progressBarChannel = null;
 
-    private Future $runner;
+    /**
+     * @var Future|Runner Instance of the Runner
+     */
+    private Future|Runner $runner;
 
     /**
      * Disable public constructor, usage only available through singleton instance
      */
     private function __construct() {
         $this->uuid = substr(md5(uniqid(self::class, true)), 0, 16);
-
-        if ( !extension_loaded('parallel')) return;
-
-        // start main thread
-        $this->runner = (new Runtime(PARALLEL_AUTOLOADER))
-            ->run(static function($uuid): void {
+        $this->runner = extension_loaded('parallel')
+            // create a runner inside a thread
+            ? (new Runtime(PARALLEL_AUTOLOADER))->run(static function($uuid): void {
                 // create runner instance
                 $runner = new Internals\Runner($uuid);
                 // watch for events
                 $runner->watch();
-            }, [ $this->uuid ]);
+            }, [ $this->uuid ])
+
+            // create runner instance for non-threaded environment
+            : new Internals\Runner($this->uuid);
     }
 
     /**
@@ -214,15 +217,27 @@ final class Scheduler {
     }
 
     private function getRegisteredWorker(string $worker): RegisteredWorker | false {
-        $this->send(new Commands\GetRegisteredWorkerMessage($worker));
+        $message = new Commands\GetRegisteredWorkerMessage($worker);
 
-        return $this->recv();
+        if (extension_loaded('parallel')) {
+            $this->send($message);
+
+            return $this->recv();
+        }
+
+        return $this->runner->processMessage($message);
     }
 
     private function registerWorker(string | Closure $worker, array $args): RegisteredWorker {
-        $this->send(new Commands\RegisterWorkerMessage($worker, $args));
+        $message = new Commands\RegisterWorkerMessage($worker, $args);
 
-        return $this->recv();
+        if (extension_loaded('parallel')) {
+            $this->send($message);
+
+            return $this->recv();
+        }
+
+        return $this->runner->processMessage($message);
     }
 
     private ?Channel $input = null;
@@ -269,67 +284,51 @@ final class Scheduler {
      * @link https://www.php.net/manual/en/parallel.run
      */
     public static function runTask(mixed ...$data): int {
-        self::instance()->send(new Commands\QueueTaskMessage($data));
+        $message = new Commands\QueueTaskMessage($data);
 
-        // get queued task and check if there was an exception thrown
-        if (($task_id = self::instance()->recv()) instanceof ParallelException) {
-            // redirect exception
-            throw new RuntimeException($task_id->getMessage());
+        if (extension_loaded('parallel')) {
+            self::instance()->send($message);
+
+            // get queued task and check if there was an exception thrown
+            if (($task_id = self::instance()->recv()) instanceof ParallelException) {
+                // redirect exception
+                throw new RuntimeException($task_id->getMessage());
+            }
+
+            return $task_id;
         }
 
-        return $task_id;
-
-        $todo = true;
-
-        // check if a worker was defined
-        if (($worker_id = count(self::instance()->registered_workers) - 1) < 0) {
-            // reject task scheduling, no worker is defined
-            throw new RuntimeException('No worker is defined');
-        }
-
-        // get registered worker
-        $registered_worker = self::instance()->registered_workers[$worker_id];
-        // register a pending task linked with the registered Worker
-        self::instance()->pendingTasks[] = new Task($registered_worker, $data);
-
-        do {
-            // remove finished tasks
-            self::instance()->cleanFinishedTasks();
-            // if pending tasks count exceeds available CPU, wait 10ms
-            if ($pending_eq_cpu = (count(self::instance()->pendingTasks) >= self::instance()->getMaxCpuUsage())) usleep(10_000);
-
-        // wait if all CPU are used and pending tasks exceed available CPU
-        } while ($pending_eq_cpu && !self::instance()->hasCpuAvailable());
-
-        // start the next available task
-        self::instance()->runNextTask();
+        return self::instance()->runner->processMessage($message);
     }
 
     /**
      * Returns the result of every processed task
      *
-     * @return ProcessedTask[] | Generator Results of processed tasks
+     * @return Task[] | Generator Results of processed tasks
+     * @deprecated Use {@see Scheduler::getTasks()} instead
      */
     public static function getProcessedTasks(): Generator | array {
-        // start all pending tasks, send all available results, until there is no more results available
-        while ( !empty(self::instance()->pendingTasks) || !empty(self::instance()->futures) || !empty(self::instance()->results)) {
-            // send available results
-            while (null !== $result = array_shift(self::instance()->results))
-                // send already processed result
-                yield $result;
+        yield from self::getTasks();
+    }
 
-            // clear finished tasks
-            self::instance()->cleanFinishedTasks();
+    /**
+     * Returns the list of tasks
+     *
+     * @return Task[] | Generator List of Tasks
+     */
+    public static function getTasks(): Generator | array {
+        $message = new Commands\GetTasksMessage();
 
-            // start available tasks
-            while (self::instance()->hasCpuAvailable() && !empty(self::instance()->pendingTasks))
-                // start the next available task
-                self::instance()->runNextTask();
+        if (extension_loaded('parallel')) {
+            self::instance()->send($message);
 
-            // check there are tasks running
-            if ( !empty(self::instance()->futures))
-                // wait for any task to finish
-                while ( empty(array_filter(self::instance()->futures, static fn(Future $future): bool => $future->done()))) usleep(10_000);
+            while (false !== $task = self::instance()->recv()) {
+                yield $task;
+            }
+        }
+
+        while (false !== $task = self::instance()->runner->processMessage($message)) {
+            yield $task;
         }
     }
 
@@ -512,6 +511,9 @@ final class Scheduler {
         if ( !extension_loaded('parallel')) return;
 
         try {
+            // stop runner
+            self::instance()->runner->cancel();
+
             // send message to ProgressBar thread to stop execution
             self::instance()->progressBarChannel?->send(Type::Close);
             // wait progress thread to finish
