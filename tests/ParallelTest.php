@@ -29,6 +29,7 @@ final class ParallelTest extends TestCase {
      */
     public function testThatWorkerMustBeDefinedValidates(): void {
         $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('No worker is defined');
         Scheduler::runTask(123);
     }
 
@@ -37,7 +38,7 @@ final class ParallelTest extends TestCase {
      */
     public function testThatWorkersCanBeRegistered(): void {
         $this->assertInstanceOf(RegisteredWorker::class,
-            $registered_worker = Scheduler::using(Workers\EmptyWorker::class, [ true, 123, 'false' ]));
+            Scheduler::using(Workers\EmptyWorker::class, [ true, 123, 'false' ]));
     }
 
     /**
@@ -55,11 +56,13 @@ final class ParallelTest extends TestCase {
                 Scheduler::stop();
             }
         }
+
+        Scheduler::awaitTasksCompletion();
 return;
         $results = [];
-        foreach (Scheduler::getProcessedTasks() as $processed_task) {
-            $this->assertEquals(Worker::class, $processed_task->getWorkerClass());
-            $results[] = $processed_task->getResult();
+        foreach (Scheduler::getTasks() as $task) {
+            $this->assertEquals(Worker::class, $task->getWorkerClass());
+            $results[] = $task->getResult();
         }
         // tasks results must be the same count
         $this->assertCount(count($tasks), $results);
