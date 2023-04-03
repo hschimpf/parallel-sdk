@@ -217,6 +217,7 @@ final class Scheduler {
 
     private ?Channel $input = null;
     private ?Channel $output = null;
+    private ?Channel $tasks_link = null;
 
     private function send(mixed $value): void {
         // open channel if not already opened
@@ -230,7 +231,7 @@ final class Scheduler {
         $this->input->send($value);
     }
 
-    private function recv(): mixed {
+    private function recv(bool $tasks_link = false): mixed {
         // open channel if not already opened
         while ($this->output === null) {
             // try to open output channel
@@ -238,8 +239,15 @@ final class Scheduler {
             // wait 10ms on failure
             } catch (Channel\Error\Existence) { usleep(10_000); }
         }
+        // open channel if not already opened
+        while ($this->tasks_link === null) {
+            // try to open tasks_link channel
+            try { $this->tasks_link = Channel::open(Runner::class.'@'.$this->uuid);
+            // wait 10ms on failure
+            } catch (Channel\Error\Existence) { usleep(10_000); }
+        }
 
-        return $this->output->recv();
+        return $tasks_link ? $this->tasks_link->recv() : $this->output->recv();
     }
 
     /**
@@ -302,9 +310,11 @@ final class Scheduler {
         if (PARALLEL_EXT_LOADED) {
             self::instance()->send($message);
 
-            while (false !== $task = self::instance()->recv()) {
+            while (false !== $task = self::instance()->recv(true)) {
                 yield $task;
             }
+
+            return;
         }
 
         yield from self::instance()->runner->processMessage($message);

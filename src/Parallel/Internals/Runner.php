@@ -137,8 +137,9 @@ final class Runner {
 
     private function getTasks(): array {
         foreach ($this->tasks as $task) {
-            $this->send($task);
+            $this->tasks_link->send($task);
         }
+        $this->tasks_link->send(false);
 
         return $this->tasks;
     }

@@ -21,6 +21,11 @@ trait HasChannels {
      */
     private Channel $eater_link;
 
+    /**
+     * @var Channel Communication channel to output tasks
+     */
+    private Channel $tasks_link;
+
     private function openChannels(): void {
         if ( !PARALLEL_EXT_LOADED) return;
 
@@ -29,6 +34,8 @@ trait HasChannels {
         $this->output = Channel::make(self::class.'@output');
         // channel to comunicate with eater
         $this->eater_link = Channel::make(self::class.'@eater');
+        // channel to output tasks
+        $this->tasks_link = Channel::make(self::class.'@'.$this->uuid);
     }
 
     protected function recv(): mixed {
