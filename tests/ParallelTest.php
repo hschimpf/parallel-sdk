@@ -105,6 +105,8 @@ final class ParallelTest extends TestCase {
             }
         }
 
+        Scheduler::awaitTasksCompletion();
+
         $results = [];
         // fetch processed tasks and store their results
         foreach (Scheduler::getTasks() as $task) {
@@ -114,8 +116,6 @@ final class ParallelTest extends TestCase {
                 $result[1]);
             $results[$worker_class][] = $result;
         }
-
-        Scheduler::disconnect();
 
         // check results
         foreach ($workers as $worker) {
