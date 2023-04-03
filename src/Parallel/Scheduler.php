@@ -277,6 +277,21 @@ final class Scheduler {
     }
 
     /**
+     * Calling this method will pause execution until all tasks are finished.
+     */
+    public static function awaitTasksCompletion(): bool {
+        $message = new Commands\WaitTasksCompletionMessage();
+
+        if (extension_loaded('parallel')) {
+            self::instance()->send($message);
+
+            return self::instance()->recv();
+        }
+
+        return self::instance()->runner->processMessage($message);
+    }
+
+    /**
      * Returns the result of every processed task
      *
      * @return Task[] | Generator Results of processed tasks

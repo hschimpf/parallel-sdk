@@ -144,6 +144,13 @@ final class Runner {
         $this->send($this->hasPendingTasks(), eater: true);
     }
 
+    private function await(): bool {
+        // wait for all tasks to finish processing
+        while ($this->hasPendingTasks()) usleep(25_000);
+
+        return true;
+    }
+
     private function stopRunningTasks(): void {
         // TODO stop running tasks
     }
