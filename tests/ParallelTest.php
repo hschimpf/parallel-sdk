@@ -126,8 +126,8 @@ final class ParallelTest extends TestCase {
 
             // tasks results must be the same count
             $this->assertCount(count($worker_tasks), $worker_results);
-            // tasks results must be in different order
-            $this->assertNotEquals($worker_tasks, array_column($worker_results, 0), 'Arrays are in the same order');
+            // tasks results must not be in different order
+            $this->assertEquals($worker_tasks, array_column($worker_results, 0), 'Arrays are in different order');
 
             $result = array_shift($worker_results);
             $this->assertEquals($result[1], $result[0] * array_product($multipliers));
