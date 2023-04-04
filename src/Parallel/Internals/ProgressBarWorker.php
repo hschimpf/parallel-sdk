@@ -6,19 +6,14 @@ use Closure;
 use HDSSolutions\Console\Parallel\Internals\Messages\ProgressBarActionMessage;
 use HDSSolutions\Console\Parallel\Internals\Messages\ProgressBarRegistrationMessage;
 use HDSSolutions\Console\Parallel\Internals\Messages\StatsReportMessage;
-use HDSSolutions\Console\Parallel\ParallelWorker;
 use parallel\Channel;
 use parallel\Events\Event\Type;
 use RuntimeException;
 use Symfony\Component\Console\Helper\Helper;
-use Symfony\Component\Console\Helper\ProgressBar;
 
-final class ProgressBarWorker extends ParallelWorker {
-
-    /**
-     * @var ProgressBar ProgressBar instance
-     */
-    private ProgressBar $progressBar;
+final class ProgressBarWorker {
+    use ProgressBarWorker\HasChannels;
+    use ProgressBarWorker\HasProgressBar;
 
     /**
      * @var bool Flag to identify if ProgressBar is already started
@@ -40,9 +35,18 @@ final class ProgressBarWorker extends ParallelWorker {
      */
     public function __construct(
         private string $uuid,
-    ) {}
+    ) {
+        $this->openChannels();
+        $this->createProgressBar();
+    }
 
-    protected function process(Closure $createProgressBarInstance = null, Closure $main_memory_usage = null): bool {
+    /**
+     * Watch for events. This is used only on a multi-threaded environment
+     */
+    public function listen(): void {
+        // notify successful start
+        $this->release();
+
         // connect to Channel of communication
         $progresBarChannel = Channel::open(sprintf('progress-bar@%s', $this->uuid));
         // notify successful start
@@ -58,7 +62,7 @@ final class ProgressBarWorker extends ParallelWorker {
         ];
 
         // get next message
-        while (Type::Close !== $message = $progresBarChannel->recv()) {
+        try { while (Type::Close !== $message = $this->input->recv()) {
             // check for close event and exit loop
             if ($message === Type::Close) break;
 
@@ -101,12 +105,12 @@ final class ProgressBarWorker extends ParallelWorker {
                     throw new RuntimeException(sprintf('Unsupported message type: %s', $message_class));
             }
 
+        }} catch (Channel\Error\Closed) {
+            // TODO channel must not be closed
+            $debug = true;
         }
 
-        // end progress bar
-        $this->progressBar->finish();
-
-        return true;
+        $this->closeChannels();
     }
 
     private function registerWorker(int $steps = 0): void {

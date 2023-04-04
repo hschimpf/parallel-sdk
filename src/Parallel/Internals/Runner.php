@@ -160,6 +160,21 @@ final class Runner {
         return $this->send(true);
     }
 
+    private function enableProgressBar(int $steps): bool {
+        if (null === $worker = $this->getSelectedWorker()) {
+            throw new RuntimeException('No worker is defined');
+        }
+
+        $this->initProgressBar();
+
+        $this->progressBarChannel->send(new ProgressBarRegistrationMessage(
+            worker: $worker->getWorkerClass(),
+            steps:  $steps,
+        ));
+
+        return $this->send(true);
+    }
+
     private function update(): void {
         $this->cleanFinishedTasks();
         while ($this->hasCpuAvailable() && $this->hasPendingTasks()) {

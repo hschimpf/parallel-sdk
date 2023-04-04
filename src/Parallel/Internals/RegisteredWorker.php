@@ -36,7 +36,7 @@ final class RegisteredWorker {
         if (false === $this->with_progress = $with_progress) return;
 
         // enable ProgressBar thread
-        Scheduler::registerWorkerWithProgressBar($this, $steps);
+        Scheduler::enableProgressBarOnCurrentWorker($steps);
     }
 
     public function hasProgressEnabled(): bool {

@@ -80,9 +80,9 @@ final class ParallelTest extends TestCase {
 
         foreach ($workers as $worker) {
             // register worker
-            Scheduler::using($worker, $multipliers);
+            Scheduler::using($worker, $multipliers)
                 // init progress bar for worker
-                // ->withProgress(steps: $total);
+                ->withProgress(steps: $total);
 
             // run example tasks
             foreach ($tasks[$worker] as $task) {
