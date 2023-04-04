@@ -79,7 +79,7 @@ final class Scheduler {
             : new Internals\Runner($this->uuid);
 
         // wait until Runner starts listening for events
-        $this->recv();
+        if (PARALLEL_EXT_LOADED) $this->recv();
     }
 
     /**
