@@ -68,7 +68,7 @@ final class Scheduler {
     private function __construct() {
         $this->uuid = substr(md5(uniqid(self::class, true)), 0, 16);
         $this->runner = PARALLEL_EXT_LOADED
-            // create a runner inside a thread
+            // create a Runner instance inside a thread
             ? (new Runtime(PARALLEL_AUTOLOADER))->run(static function($uuid): void {
                 // create runner instance
                 $runner = new Internals\Runner($uuid);
@@ -78,6 +78,9 @@ final class Scheduler {
 
             // create runner instance for non-threaded environment
             : new Internals\Runner($this->uuid);
+
+        // wait for runner to start watching for events
+        $this->recv();
     }
 
     /**

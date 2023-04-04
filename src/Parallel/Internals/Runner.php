@@ -32,6 +32,9 @@ final class Runner {
      * Watch for events. This is used only on a multi-threaded environment
      */
     public function watch(): void {
+        // notify successful start
+        $this->release();
+
         // read messages
         try { while (Event\Type::Close !== $message = $this->recv()) {
             try {
