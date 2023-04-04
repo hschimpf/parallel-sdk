@@ -21,7 +21,6 @@ use RuntimeException;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Throwable;
-use function parallel\run;
 
 final class Scheduler {
 
@@ -72,14 +71,14 @@ final class Scheduler {
             ? (new Runtime(PARALLEL_AUTOLOADER))->run(static function($uuid): void {
                 // create runner instance
                 $runner = new Internals\Runner($uuid);
-                // watch for events
-                $runner->watch();
+                // listen for events
+                $runner->listen();
             }, [ $this->uuid ])
 
             // create runner instance for non-threaded environment
             : new Internals\Runner($this->uuid);
 
-        // wait for runner to start watching for events
+        // wait until Runner starts listening for events
         $this->recv();
     }
 
