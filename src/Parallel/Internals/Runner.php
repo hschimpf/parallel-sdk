@@ -5,6 +5,7 @@ namespace HDSSolutions\Console\Parallel\Internals;
 use Closure;
 use HDSSolutions\Console\Parallel\Exceptions\ParallelException;
 use HDSSolutions\Console\Parallel\Internals\Commands\ParallelCommandMessage;
+use HDSSolutions\Console\Parallel\Internals\Messages\ProgressBarRegistrationMessage;
 use parallel\Channel;
 use parallel\Events\Event;
 use RuntimeException;
@@ -197,6 +198,7 @@ final class Runner {
 
     private function stopRunningTasks(): void {
         // TODO stop running tasks
+        $todo = true;
     }
 
 }
