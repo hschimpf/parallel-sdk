@@ -21,6 +21,7 @@ final class TwoWayChannel implements Contracts\TwoWayChannel {
      * Disable constructor
      */
     private function __construct(
+        private string $name,
         private bool $creator = false,
     ) {}
 
@@ -29,16 +30,15 @@ final class TwoWayChannel implements Contracts\TwoWayChannel {
      * Shall make a buffered two-way channel with the given name and capacity
      *
      * @param  string  $name  The name of the channel
-     * @param  int|null  $capacity  May be Channel::Infinite or a positive integer
      *
      * @return self
      * @throws Channel\Error\Existence if channel already exists
      */
-    public static function make(string $name, ?int $capacity = null): self {
-        $instance = new self(true);
+    public static function make(string $name): self {
+        $instance = new self($name, true);
         // create channels
-        $instance->input = Channel::make("$name@input", $capacity);
-        $instance->output = Channel::make("$name@output", $capacity);
+        $instance->input = Channel::make("$name@input");
+        $instance->output = Channel::make("$name@output");
 
         return $instance;
     }
@@ -52,19 +52,12 @@ final class TwoWayChannel implements Contracts\TwoWayChannel {
      * @throws Channel\Error\Existence if channel does not exist
      */
     public static function open(string $name): self {
-        $instance = new self(false);
+        $instance = new self($name, false);
         // create channels
-        $instance->input = Channel::open("$name@input");
-        $instance->output = Channel::open("$name@output");
+        $instance->input = Channel::open("$name@output");
+        $instance->output = Channel::open("$name@input");
 
         return $instance;
-    }
-
-    /**
-     * @throws Channel\Error\Closed if input channel is closed.
-     */
-    public function receive(): mixed {
-        return $this->input->recv();
     }
 
     /**
@@ -79,8 +72,11 @@ final class TwoWayChannel implements Contracts\TwoWayChannel {
         return $value;
     }
 
-    public function release(): bool {
-        return $this->send(true);
+    /**
+     * @throws Channel\Error\Closed if input channel is closed.
+     */
+    public function receive(): mixed {
+        return $this->input->recv();
     }
 
     /**
@@ -91,6 +87,10 @@ final class TwoWayChannel implements Contracts\TwoWayChannel {
     public function close(): void {
         $this->input->close();
         $this->output->close();
+    }
+
+    public function release(): bool {
+        return $this->send(true);
     }
 
 }
