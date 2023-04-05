@@ -6,6 +6,7 @@ use Closure;
 use Exception;
 use Generator;
 use HDSSolutions\Console\Parallel\Exceptions\ParallelException;
+use HDSSolutions\Console\Parallel\Internals\Communication\TwoWayChannel;
 use HDSSolutions\Console\Parallel\Internals\Messages\ProgressBarRegistrationMessage;
 use HDSSolutions\Console\Parallel\Internals\Commands;
 use HDSSolutions\Console\Parallel\Internals\Task;
@@ -29,9 +30,6 @@ final class Scheduler {
 
     /** @var string Unique ID of the instance */
     private string $uuid;
-
-    /** @var ?Channel Channel to wait threads start */
-    private ?Channel $starter = null;
 
     /** @var Future[] Collection of running tasks */
     private array $futures = [];
@@ -62,7 +60,7 @@ final class Scheduler {
     private Future|Runner $runner;
 
     /**
-     * Disable public constructor, usage only available through singleton instance
+     * Disable public constructor, usage is only available through the singleton instance
      */
     private function __construct() {
         $this->uuid = substr(md5(uniqid(self::class, true)), 0, 16);
@@ -218,39 +216,45 @@ final class Scheduler {
         return $this->runner->processMessage($message);
     }
 
-    private ?Channel $input = null;
-    private ?Channel $output = null;
-    private ?Channel $tasks_link = null;
+    /**
+     * @var TwoWayChannel|null Communication channel with Runner instance
+     */
+    private ?TwoWayChannel $runner_channel = null;
+
+    /**
+     * @var Channel|null Communication channel to receive Tasks
+     */
+    private ?Channel $tasks_channel = null;
 
     private function send(mixed $value): void {
         // open channel if not already opened
-        while ($this->input === null) {
-            // try to open input channel
-            try { $this->input = Channel::open(Runner::class.'@input');
-            // wait 10ms on failure
-            } catch (Channel\Error\Existence) { usleep(10_000); }
+        while ($this->runner_channel === null) {
+            // open channel to communicate with the Runner instance
+            try { $this->runner_channel = TwoWayChannel::open(Runner::class);
+            // wait 25ms if channel does not exist yet and retry
+            } catch (Channel\Error\Existence) { usleep(25_000); }
         }
 
-        $this->input->send($value);
+        $this->runner_channel->send($value);
     }
 
-    private function recv(bool $tasks_link = false): mixed {
+    private function recv(bool $from_tasks_channel = false): mixed {
         // open channel if not already opened
-        while ($this->output === null) {
-            // try to open output channel
-            try { $this->output = Channel::open(Runner::class.'@output');
-            // wait 10ms on failure
-            } catch (Channel\Error\Existence) { usleep(10_000); }
+        while ($this->runner_channel === null) {
+            // open channel to communicate with the Runner instance
+            try { $this->runner_channel = TwoWayChannel::open(Runner::class);
+            // wait 25ms if channel does not exist yet and retry
+            } catch (Channel\Error\Existence) { usleep(25_000); }
         }
         // open channel if not already opened
-        while ($this->tasks_link === null) {
-            // try to open tasks_link channel
-            try { $this->tasks_link = Channel::open(Runner::class.'@'.$this->uuid);
-            // wait 10ms on failure
-            } catch (Channel\Error\Existence) { usleep(10_000); }
+        while ($this->tasks_channel === null) {
+            // open channel to receive the tasks list
+            try { $this->tasks_channel = Channel::open(Runner::class.'@'.$this->uuid);
+            // wait 25ms if channel does not exist yet and retry
+            } catch (Channel\Error\Existence) { usleep(25_000); }
         }
 
-        return $tasks_link ? $this->tasks_link->recv() : $this->output->recv();
+        return $from_tasks_channel ? $this->tasks_channel->recv() : $this->runner_channel->receive();
     }
 
     /**
@@ -382,27 +386,7 @@ final class Scheduler {
             // gracefully join
             self::instance()->recv();
 
-            // send message to ProgressBar thread to stop execution
-            self::instance()->progressBarChannel?->send(Type::Close);
-            // wait progress thread to finish
-            self::instance()->progressBarThread?->value();
-            // close ProgressBar communication channel
-            self::instance()->progressBarChannel?->close();
-
-            self::instance()->progressBarChannel = null;
-            self::instance()->progressBarThread = null;
-
         } catch (Channel\Error\Closed | Throwable) {}
-
-        // kill all running threads
-        while ($task = array_shift(self::instance()->futures)) try { $task->cancel(); } catch (Exception) {}
-
-        try {
-            // task start watcher
-            self::instance()->starter?->close();
-            self::instance()->starter = null;
-
-        } catch (Channel\Error\Closed) {}
     }
 
 }

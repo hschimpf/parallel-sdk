@@ -144,9 +144,9 @@ final class Runner {
         }
 
         foreach ($this->tasks as $task) {
-            $this->tasks_link->send($task);
+            $this->tasks_channel->send($task);
         }
-        $this->tasks_link->send(false);
+        $this->tasks_channel->send(false);
 
         return false;
     }
