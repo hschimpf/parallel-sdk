@@ -3,7 +3,6 @@
 namespace HDSSolutions\Console\Parallel;
 
 use Closure;
-use Exception;
 use Generator;
 use HDSSolutions\Console\Parallel\Exceptions\ParallelException;
 use HDSSolutions\Console\Parallel\Internals\Communication\TwoWayChannel;
@@ -15,7 +14,6 @@ use HDSSolutions\Console\Parallel\Internals\RegisteredWorker;
 use HDSSolutions\Console\Parallel\Internals\Runner;
 use parallel\Channel;
 use parallel\Events\Event;
-use parallel\Events\Event\Type;
 use parallel\Future;
 use parallel\Runtime;
 use RuntimeException;
