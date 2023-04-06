@@ -272,9 +272,9 @@ final class Scheduler {
         if ( !PARALLEL_EXT_LOADED) return;
 
         try {
-            // stop runner
+            // stop Runner instance
             self::instance()->send(Event\Type::Close);
-            // gracefully join
+            // wait until Runner instance shutdowns
             self::instance()->recv();
 
         } catch (Channel\Error\Closed | Throwable) {}
