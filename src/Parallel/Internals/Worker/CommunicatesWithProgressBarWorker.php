@@ -57,6 +57,11 @@ trait CommunicatesWithProgressBarWorker {
     }
 
     private function newProgressBarAction(string $action, ...$args): void {
+        $message = new ProgressBarActionMessage(
+            action: $action,
+            args:   $args,
+        );
+
         // check if parallel is available
         if (PARALLEL_EXT_LOADED) {
             // report memory usage
@@ -65,16 +70,13 @@ trait CommunicatesWithProgressBarWorker {
                 memory_usage: memory_get_usage(),
             ));
             // request ProgressBar action
-            $this->progressbar_channel->send(new ProgressBarActionMessage(
-                action: $action,
-                args:   $args,
-            ));
+            $this->progressbar_channel->send($message);
 
             return;
         }
 
         // redirect action to ProgressBar executor
-        ($this->progressbar_channel)($action, $args);
+        ($this->progressbar_channel)($message);
     }
 
 }
