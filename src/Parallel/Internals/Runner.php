@@ -3,13 +3,9 @@
 namespace HDSSolutions\Console\Parallel\Internals;
 
 use Closure;
-use HDSSolutions\Console\Parallel\Exceptions\ParallelException;
-use HDSSolutions\Console\Parallel\Internals\Commands\ParallelCommandMessage;
+use HDSSolutions\Console\Parallel\Internals\Common;
 use HDSSolutions\Console\Parallel\Internals\Messages\ProgressBarRegistrationMessage;
-use parallel\Channel;
-use parallel\Events\Event;
 use RuntimeException;
-use Throwable;
 
 final class Runner {
     use Runner\HasChannels;
@@ -18,6 +14,8 @@ final class Runner {
 
     use Runner\ManagesWorkers;
     use Runner\ManagesTasks;
+
+    use Common\ListenEventsAndExecuteActions;
 
     /** @var ?int Max CPU usage count */
     private ?int $max_cpu_count = null;
@@ -29,52 +27,10 @@ final class Runner {
         $this->startEater();
     }
 
-    /**
-     * Watch for events. This is used only on a multi-threaded environment
-     */
-    public function listen(): void {
-        // notify successful start
-        $this->release();
-
-        // read messages
-        try { while (Event\Type::Close !== $message = $this->recv()) {
-            try {
-                // check if we got a valid message
-                if ( !($message instanceof ParallelCommandMessage)) {
-                    throw new RuntimeException('Invalid message received!');
-                }
-
-                // process message
-                $this->processMessage($message);
-
-            } catch (Throwable $e) {
-                // redirect exception to caller using output channel
-                $this->send(new ParallelException($e));
-            }
-
-        }} catch (Channel\Error\Closed) {
-            // TODO channel must not be closed
-            $debug = true;
-        }
-
+    protected function afterListening(): void {
         $this->stopEater();
         $this->stopRunningTasks();
         $this->closeChannels();
-    }
-
-    /**
-     * @param  ParallelCommandMessage  $message
-     *
-     * @throws RuntimeException If the requested action isn't implemented
-     */
-    public function processMessage(Commands\ParallelCommandMessage $message): mixed {
-        // check if action is implemented
-        if ( !method_exists($this, $method = lcfirst(implode('', array_map('ucfirst', explode('_', $message->action)))))) {
-            throw new RuntimeException(sprintf('Action "%s" not yet implemented', $message->action));
-        }
-
-        // execute action and return the result
-        return $this->{$method}(...$message->args);
     }
 
     private function getMaxCpuUsage(): int {
@@ -82,7 +38,7 @@ final class Runner {
         return $this->max_cpu_count ??= (isset($_SERVER['PARALLEL_MAX_COUNT']) ? (int) $_SERVER['PARALLEL_MAX_COUNT'] : cpu_count( (float) ($_SERVER['PARALLEL_MAX_PERCENT'] ?? 1.0) ));
     }
 
-    private function getRegisteredWorker(string $worker): RegisteredWorker | false {
+    protected function getRegisteredWorker(string $worker): RegisteredWorker | false {
         if ( !array_key_exists($worker, $this->workers_hashmap)) {
             return $this->send(false);
         }
@@ -92,7 +48,7 @@ final class Runner {
              ->send($this->getSelectedWorker());
     }
 
-    private function registerWorker(string | Closure $worker, array $args = []): RegisteredWorker {
+    protected function registerWorker(string | Closure $worker, array $args = []): RegisteredWorker {
         // check if worker is already registered
         if (is_string($worker) && array_key_exists($worker, $this->workers_hashmap)) {
             throw new RuntimeException(sprintf('Worker class "%s" is already registered', $worker));
@@ -112,7 +68,7 @@ final class Runner {
                     ->send($registered_worker);
     }
 
-    private function queueTask(array $data): int {
+    protected function queueTask(array $data): int {
         if (null === $worker = $this->getSelectedWorker()) {
             // reject task scheduling, no worker is defined
             throw new RuntimeException('No worker is defined');
@@ -139,7 +95,7 @@ final class Runner {
         return $this->send($task->getIdentifier());
     }
 
-    private function getTasks(): array | false {
+    protected function getTasks(): array | false {
         if ( !PARALLEL_EXT_LOADED) {
             return $this->tasks;
         }
@@ -152,7 +108,7 @@ final class Runner {
         return false;
     }
 
-    private function removeTasks(): bool {
+    protected function removeTasks(): bool {
         $this->stopRunningTasks();
 
         $this->tasks = [];
@@ -176,7 +132,7 @@ final class Runner {
         return $this->send(true);
     }
 
-    private function update(): void {
+    protected function update(): void {
         $this->cleanFinishedTasks();
         while ($this->hasCpuAvailable() && $this->hasPendingTasks()) {
             $this->startNextPendingTask();
@@ -185,7 +141,7 @@ final class Runner {
         $this->send($this->hasPendingTasks(), eater: true);
     }
 
-    private function await(): bool {
+    protected function await(): bool {
         if (PARALLEL_EXT_LOADED) {
             return $this->send($this->hasPendingTasks() || $this->hasRunningTasks());
         }
