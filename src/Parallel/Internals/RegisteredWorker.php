@@ -12,6 +12,8 @@ final class RegisteredWorker {
      */
     private bool $with_progress = false;
 
+    private int $steps;
+
     public function __construct(
         private int $identifier,
         private string $worker_class,
@@ -35,9 +37,10 @@ final class RegisteredWorker {
     public function withProgress(bool $with_progress = true, int $steps = 0): void {
         // check if caller is Runner
         $caller = debug_backtrace(!DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1];
-        if (($caller['class'] ?? null) === Runner::class) {
+        if (($caller['class'] ?? null) === Runner::class || !PARALLEL_EXT_LOADED) {
             // enable with progress flag
             $this->with_progress = $with_progress;
+            $this->steps = $steps;
 
             return;
         }
@@ -50,6 +53,10 @@ final class RegisteredWorker {
 
     public function hasProgressEnabled(): bool {
         return $this->with_progress;
+    }
+
+    public function getSteps(): int {
+        return $this->steps;
     }
 
     public function getWorkerClass(): string {
