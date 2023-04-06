@@ -117,14 +117,19 @@ final class Runner {
         return $this->send(true);
     }
 
-    private function enableProgressBar(int $steps): bool {
-        if (null === $worker = $this->getSelectedWorker()) {
-            throw new RuntimeException('No worker is defined');
+    protected function enableProgressBar(string $worker_id, int $steps): bool {
+        if ( !array_key_exists($worker_id, $this->workers_hashmap)) {
+            throw new RuntimeException('Worker is not defined');
         }
+
+        // get registered Worker
+        $worker = $this->workers[$this->workers_hashmap[$worker_id]];
+        // enable progress with specified steps
+        $worker->withProgress(steps: $steps);
 
         $this->initProgressBar();
 
-        $this->progressBarChannel->send(new ProgressBarRegistrationMessage(
+        $this->progressbar_channel->send(new ProgressBarRegistrationMessage(
             worker: $worker->getWorkerClass(),
             steps:  $steps,
         ));
@@ -155,6 +160,10 @@ final class Runner {
     private function stopRunningTasks(): void {
         // TODO stop running tasks
         $todo = true;
+    }
+
+    public function __destruct() {
+        $this->stopProgressBar();
     }
 
 }

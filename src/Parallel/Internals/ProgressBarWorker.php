@@ -41,7 +41,7 @@ final class ProgressBarWorker {
         $this->closeChannels();
     }
 
-    private function registerWorker(int $steps = 0): void {
+    protected function registerWorker(string $worker, int $steps = 0): void {
         // check if ProgressBar isn't already started
         if ( !$this->progressBarStarted) {
             // start Worker ProgressBar
@@ -52,6 +52,37 @@ final class ProgressBarWorker {
             // update steps
             $this->progressBar->setMaxSteps($steps);
         }
+    }
+
+    protected function progressBarAction(string $action, array $args): void {
+        // redirect action to ProgressBar instance
+        $this->progressBar->$action(...$args);
+
+        if ($action === 'advance') {
+            // count processed item
+            $this->items[ time() ] = ($this->items[ time() ] ?? 0) + 1;
+            // update ProgressBar items per second report
+            $this->progressBar->setMessage($this->getItemsPerSecond(), 'items_per_second');
+        }
+    }
+
+    protected function statsReport(string $worker_id, int $memory_usage): void {
+        // update memory usage for this thread
+        $this->threads_memory['current'][0] = memory_get_usage();
+        // update peak memory usage
+        if ($this->threads_memory['current'][0] > $this->threads_memory['peak'][0]) {
+            $this->threads_memory['peak'][0] = $this->threads_memory['current'][0];
+        }
+
+        // save memory usage of thread
+        $this->threads_memory['current'][$worker_id] = $memory_usage;
+        // update peak memory usage
+        if ($this->threads_memory['current'][$worker_id] > ($this->threads_memory['peak'][$worker_id] ?? 0)) {
+            $this->threads_memory['peak'][$worker_id] = $this->threads_memory['current'][$worker_id];
+        }
+
+        // update ProgressBar memory report
+        $this->progressBar->setMessage($this->getMemoryUsage(), 'threads_memory');
     }
 
     private function getMemoryUsage(): string {

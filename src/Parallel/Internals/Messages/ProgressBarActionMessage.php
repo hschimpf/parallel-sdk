@@ -2,15 +2,19 @@
 
 namespace HDSSolutions\Console\Parallel\Internals\Messages;
 
-final class ProgressBarActionMessage {
+use HDSSolutions\Console\Parallel\Internals\Commands\ParallelCommandMessage;
+
+/**
+ * Message sent to {@see ProgressBarWorker} to execute {@see ProgressBarWorker::progressBarAction()}
+ */
+final class ProgressBarActionMessage extends ParallelCommandMessage {
 
     /**
      * @param  string  $action
      * @param  array  $args
      */
-    public function __construct(
-        public string $action,
-        public array $args,
-    ) {}
+    public function __construct(string $action, array $args) {
+        parent::__construct('progress_bar_action', [ $action, $args ]);
+    }
 
 }

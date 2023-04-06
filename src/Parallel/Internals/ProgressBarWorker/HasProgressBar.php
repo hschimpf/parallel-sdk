@@ -12,7 +12,12 @@ trait HasProgressBar {
      */
     private ProgressBar $progressBar;
 
-    private function createProgressBar(): ProgressBar {
+    /**
+     * @var bool Flag to identify if ProgressBar is already started
+     */
+    private bool $progressBarStarted = false;
+
+    private function createProgressBar(): void {
         $this->progressBar = new ProgressBar(new ConsoleOutput());
 
         // configure ProgressBar settings

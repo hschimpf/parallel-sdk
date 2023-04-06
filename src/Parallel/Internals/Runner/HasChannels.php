@@ -63,7 +63,7 @@ trait HasChannels {
     private function closeChannels(): void {
         // gracefully join
         $this->channel->send(false);
-        // close all channels
+        // close channel
         $this->channel->close();
     }
 
