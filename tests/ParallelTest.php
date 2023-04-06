@@ -105,6 +105,9 @@ final class ParallelTest extends TestCase {
             $results[$worker_class][] = $result;
         }
 
+        // remove all Tasks
+        Scheduler::removeTasks();
+
         // check results
         foreach ($workers as $worker) {
             // get original tasks
