@@ -5,7 +5,6 @@ namespace HDSSolutions\Console\Parallel\Internals\Runner;
 use HDSSolutions\Console\Parallel\Internals\Commands;
 use HDSSolutions\Console\Parallel\Internals\Communication\TwoWayChannel;
 use HDSSolutions\Console\Parallel\Internals\Runner;
-use parallel\Channel;
 use parallel\Events\Event;
 use parallel\Future;
 use parallel\Runtime;
@@ -38,22 +37,15 @@ trait HasEater {
             $channel->close();
         });
 
-        // open communication channel with the Eater
-        do { try { $eater = TwoWayChannel::open(Runner::class.':eater');
-        // wait 25ms if channel does not exist yet and retry
-        } catch (Channel\Error\Existence) { usleep(25_000); }
-        // try until channel is opened
-        } while (($eater ?? null) === null);
-
         // wait until Eater starts
-        $eater->receive();
+        $this->getEaterChannel()->receive();
     }
 
     private function stopEater(): void {
         // eater will send a final request
         $this->recv();
-        // close eater thread
-        $this->send(Event\Type::Close, eater: true);
+        // stop Eater instance
+        $this->getEaterChannel()->send(Event\Type::Close);
     }
 
 }
