@@ -56,6 +56,8 @@ trait HasSharedProgressBar {
     }
 
     private function stopProgressBar(): void {
+        if ( !PARALLEL_EXT_LOADED) return;
+
         // stop ProgressBar worker instance
         $this->progressbar_channel->send(Event\Type::Close);
         // wait until ProgressBar instance shutdowns
