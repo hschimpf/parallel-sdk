@@ -11,7 +11,7 @@ final class TestWorker extends ParallelWorker {
     ) {}
 
     protected function process(int $number = 0): array {
-        $microseconds = random_int(100, 1000);
+        $microseconds = random_int(10, 100);
         $this->setMessage(sprintf("TestWorker >> Hello from task #%u, I'll wait %sms", $number, $microseconds));
 
         usleep($microseconds * 1000);
