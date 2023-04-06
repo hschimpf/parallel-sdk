@@ -3,6 +3,8 @@
 namespace HDSSolutions\Console\Parallel\Internals\Runner;
 
 use HDSSolutions\Console\Parallel\Contracts\ParallelWorker;
+use HDSSolutions\Console\Parallel\Internals\Messages\ProgressBarActionMessage;
+use HDSSolutions\Console\Parallel\Internals\Messages\ProgressBarRegistrationMessage;
 use HDSSolutions\Console\Parallel\Internals\RegisteredWorker;
 use HDSSolutions\Console\Parallel\Internals\Task;
 use HDSSolutions\Console\Parallel\Internals\Worker;
@@ -141,21 +143,15 @@ trait ManagesTasks {
 
             // check if worker has ProgressBar enabled
             if ($registered_worker->hasProgressEnabled()) {
+                // init progressbar
+                $this->initProgressBar();
+                // register worker
+                $this->progressBar->processMessage(new ProgressBarRegistrationMessage(
+                    worker: $worker_class,
+                    steps:  $registered_worker->getSteps(),
+                ));
                 // connect worker to ProgressBar
-                $worker->connectProgressBar(function(string $action, array $args) {
-                    // update stats
-                    if ($action === 'advance') {
-                        // count processed item
-                        $this->items[ time() ] = ($this->items[ time() ] ?? 0) + 1;
-                    }
-                    // update ProgressBar memory usage report
-                    $this->progressBar->setMessage($this->getMemoryUsage(), 'threads_memory');
-                    // update ProgressBar items per second report
-                    $this->progressBar->setMessage($this->getItemsPerSecond(), 'items_per_second');
-
-                    // execute progress bar action
-                    $this->progressBar->$action(...$args);
-                });
+                $worker->connectProgressBar(fn(ProgressBarActionMessage $message) => $this->progressBar->processMessage($message));
             }
 
             $task->setState(Task::STATE_Processing);
