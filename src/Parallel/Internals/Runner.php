@@ -151,10 +151,7 @@ final class Runner {
             return $this->send($this->hasPendingTasks() || $this->hasRunningTasks());
         }
 
-        // wait for all tasks to finish processing
-        while ($this->hasPendingTasks() || $this->hasRunningTasks()) usleep(25_000);
-
-        return $this->send(true);
+        return true;
     }
 
     private function stopRunningTasks(): void {

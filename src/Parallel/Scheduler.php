@@ -5,33 +5,24 @@ namespace HDSSolutions\Console\Parallel;
 use Closure;
 use Generator;
 use HDSSolutions\Console\Parallel\Exceptions\ParallelException;
-use HDSSolutions\Console\Parallel\Internals\Communication\TwoWayChannel;
 use HDSSolutions\Console\Parallel\Internals\Commands;
 use HDSSolutions\Console\Parallel\Internals\Task;
 use HDSSolutions\Console\Parallel\Internals\RegisteredWorker;
-use HDSSolutions\Console\Parallel\Internals\Runner;
 use parallel\Channel;
 use parallel\Events\Event;
-use parallel\Future;
 use parallel\Runtime;
 use RuntimeException;
 use Throwable;
 
 final class Scheduler {
+    use Internals\Scheduler\HasChannels;
+    use Internals\Scheduler\HasRunner;
 
     /** @var Scheduler Singleton instance */
     private static self $instance;
 
     /** @var string Unique ID of the instance */
     private string $uuid;
-
-    /** @var Future[] Collection of running tasks */
-    private array $futures = [];
-
-    /**
-     * @var Future|Runner Instance of the Runner
-     */
-    private Future|Runner $runner;
 
     /**
      * Disable public constructor, usage is only available through the singleton instance
@@ -81,71 +72,6 @@ final class Scheduler {
         }
 
         return self::instance()->registerWorker($worker, $args);
-    }
-
-    private function getRegisteredWorker(string $worker): RegisteredWorker | false {
-        $message = new Commands\GetRegisteredWorkerMessage($worker);
-
-        if (PARALLEL_EXT_LOADED) {
-            $this->send($message);
-
-            return $this->recv();
-        }
-
-        return $this->runner->processMessage($message);
-    }
-
-    private function registerWorker(string | Closure $worker, array $args): RegisteredWorker {
-        $message = new Commands\RegisterWorkerMessage($worker, $args);
-
-        if (PARALLEL_EXT_LOADED) {
-            $this->send($message);
-
-            return $this->recv();
-        }
-
-        return $this->runner->processMessage($message);
-    }
-
-    /**
-     * @var TwoWayChannel|null Communication channel with Runner instance
-     */
-    private ?TwoWayChannel $runner_channel = null;
-
-    /**
-     * @var Channel|null Communication channel to receive Tasks
-     */
-    private ?Channel $tasks_channel = null;
-
-    private function send(mixed $value): void {
-        // open channel if not already opened
-        while ($this->runner_channel === null) {
-            // open channel to communicate with the Runner instance
-            try { $this->runner_channel = TwoWayChannel::open(Runner::class);
-            // wait 25ms if channel does not exist yet and retry
-            } catch (Channel\Error\Existence) { usleep(25_000); }
-        }
-
-        $this->runner_channel->send($value);
-    }
-
-    private function recv(bool $from_tasks_channel = false): mixed {
-        // open channel if not already opened
-        while ($this->runner_channel === null) {
-            // open channel to communicate with the Runner instance
-            try { $this->runner_channel = TwoWayChannel::open(Runner::class);
-            // wait 25ms if channel does not exist yet and retry
-            } catch (Channel\Error\Existence) { usleep(25_000); }
-        }
-        // open channel if not already opened
-        while ($this->tasks_channel === null) {
-            // open channel to receive the tasks list
-            try { $this->tasks_channel = Channel::open(Runner::class.'@'.$this->uuid);
-            // wait 25ms if channel does not exist yet and retry
-            } catch (Channel\Error\Existence) { usleep(25_000); }
-        }
-
-        return $from_tasks_channel ? $this->tasks_channel->recv() : $this->runner_channel->receive();
     }
 
     /**
@@ -248,17 +174,12 @@ final class Scheduler {
      * @param  bool  $force  Flag to force task cancellation
      */
     public static function stop(bool $force = true): void {
-        // if parallel isn't enabled, just finish progress bar and return
-        if ( !PARALLEL_EXT_LOADED) {
-            // self::instance()->progress->finish();
-            return;
-        }
+        // check if extension isn't loaded and just return
+        if ( !PARALLEL_EXT_LOADED) return;
 
-        // cancel all running tasks
-        if ($force) array_map(static fn(Future $future): bool => $future->cancel(), self::instance()->futures);
+        if ($force) self::removeTasks();
 
-        // wait for all tasks to finish
-        while ( !empty(array_filter(self::instance()->futures, static fn(Future $future): bool => !$future->done()))) usleep(10_000);
+        self::awaitTasksCompletion();
     }
 
     /**
@@ -268,7 +189,7 @@ final class Scheduler {
         // remove all Tasks
         self::removeTasks();
 
-        // check if extension is loaded
+        // check if extension isn't loaded and just return
         if ( !PARALLEL_EXT_LOADED) return;
 
         try {
