@@ -36,10 +36,7 @@ final class ParallelTest extends TestCase {
     }
 
     public function testThatClosureCanBeUsedAsWorker(): void {
-        Scheduler::using(static function($input) {
-            usleep(random_int(100, 500) * 1000);
-            return $input * 2;
-        });
+        Scheduler::using(static fn($input) => $input * 2);
 
         foreach ($tasks = range(1, 10) as $task) {
             try { Scheduler::runTask($task);
