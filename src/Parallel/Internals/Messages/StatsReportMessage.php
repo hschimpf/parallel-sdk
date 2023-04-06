@@ -2,11 +2,19 @@
 
 namespace HDSSolutions\Console\Parallel\Internals\Messages;
 
-final class StatsReportMessage {
+use HDSSolutions\Console\Parallel\Internals\Commands\ParallelCommandMessage;
 
-    public function __construct(
-        public string $worker_id,
-        public int $memory_usage,
-    ) {}
+/**
+ * Message sent to {@see ProgressBarWorker} to execute {@see ProgressBarWorker::statsReport()}
+ */
+final class StatsReportMessage extends ParallelCommandMessage {
+
+    /**
+     * @param  string  $worker_id
+     * @param  int  $memory_usage
+     */
+    public function __construct(string $worker_id, int $memory_usage) {
+        parent::__construct('stats_report', [ $worker_id, $memory_usage ]);
+    }
 
 }

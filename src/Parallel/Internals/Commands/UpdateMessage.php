@@ -2,6 +2,11 @@
 
 namespace HDSSolutions\Console\Parallel\Internals\Commands;
 
+use HDSSolutions\Console\Parallel\Internals\Runner;
+
+/**
+ * Message sent to {@see Runner} to execute {@see Runner::update()} action
+ */
 final class UpdateMessage extends ParallelCommandMessage {
 
     public function __construct() {

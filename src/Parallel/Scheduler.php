@@ -6,10 +6,8 @@ use Closure;
 use Generator;
 use HDSSolutions\Console\Parallel\Exceptions\ParallelException;
 use HDSSolutions\Console\Parallel\Internals\Communication\TwoWayChannel;
-use HDSSolutions\Console\Parallel\Internals\Messages\ProgressBarRegistrationMessage;
 use HDSSolutions\Console\Parallel\Internals\Commands;
 use HDSSolutions\Console\Parallel\Internals\Task;
-use HDSSolutions\Console\Parallel\Internals\ProgressBarWorker;
 use HDSSolutions\Console\Parallel\Internals\RegisteredWorker;
 use HDSSolutions\Console\Parallel\Internals\Runner;
 use parallel\Channel;
@@ -17,8 +15,6 @@ use parallel\Events\Event;
 use parallel\Future;
 use parallel\Runtime;
 use RuntimeException;
-use Symfony\Component\Console\Helper\ProgressBar;
-use Symfony\Component\Console\Output\ConsoleOutput;
 use Throwable;
 
 final class Scheduler {
@@ -31,26 +27,6 @@ final class Scheduler {
 
     /** @var Future[] Collection of running tasks */
     private array $futures = [];
-
-    /**
-     * @var ProgressBar|null ProgressBar instance for non-threaded Tasks execution
-     */
-    private ?ProgressBar $progressBar = null;
-
-    /**
-     * @var bool Flag to identify if ProgressBar is already started (non-threaded)
-     */
-    private bool $progressBarStarted = false;
-
-    /**
-     * @var Future|null Thread controlling the ProgressBar
-     */
-    private ?Future $progressBarThread = null;
-
-    /**
-     * @var Channel|null Channel of communication between ProgressBar and Tasks
-     */
-    private ?Channel $progressBarChannel = null;
 
     /**
      * @var Future|Runner Instance of the Runner
@@ -83,89 +59,6 @@ final class Scheduler {
      */
     private static function instance(): self {
         return self::$instance ??= new self();
-    }
-
-    public static function registerWorkerWithProgressBar(RegisteredWorker $registered_worker, int $steps = 0): void {
-        self::instance()->initProgressBar();
-
-        if ( !PARALLEL_EXT_LOADED) {
-            // check if ProgressBar isn't already started
-            if ( !self::instance()->progressBarStarted) {
-                // start ProgressBar
-                self::instance()->progressBar->start($steps);
-                self::instance()->progressBarStarted = true;
-
-            } else {
-                // update steps
-                self::instance()->progressBar->setMaxSteps($steps);
-            }
-        }
-
-        // register Worker ProgressBar
-        self::instance()->progressBarChannel?->send(new ProgressBarRegistrationMessage(
-            worker: $registered_worker->getWorkerClass(),
-            steps:  $steps,
-        ));
-    }
-
-    private function initProgressBar(): void {
-        // init ProgressBar only if not already working
-        if ($this->progressBar !== null || $this->progressBarThread !== null) return;
-
-        // start a normal ProgressBar if parallel isn't available (non-threaded)
-        if ( !PARALLEL_EXT_LOADED) {
-            // create a non-threaded ProgressBar instance
-            $this->progressBar = $this->createProgressBarInstance();
-            return;
-        }
-
-        // create a channel of communication between ProgressBar and Tasks
-        $this->progressBarChannel = Channel::make(sprintf('progress-bar@%s', $this->uuid));
-
-        // main thread memory reporter
-        // FIXME this closure is copied and runs inside a thread, so memory report isn't accurate
-        $main_memory_usage = static fn() => memory_get_usage();
-
-        // decouple progress bar to a separated thread
-        $this->progressBarThread = run(static function(string $uuid, Closure $createProgressBarInstance, Closure $main_memory_usage): void {
-            // create ProgressBar worker instance
-            $progressBarWorker = new ProgressBarWorker($uuid);
-            // start ProgressBar
-            $progressBarWorker->start($createProgressBarInstance, $main_memory_usage);
-
-        }, [
-            // send UUID for starter channel
-            $this->uuid,
-            // send ProgressBar creator
-            fn() => $this->createProgressBarInstance(),
-            // send main memory usage reporter
-            $main_memory_usage,
-        ]);
-
-        // wait for ProgressBar thread to start
-        if ($this->progressBarChannel->recv() !== true) {
-            throw new RuntimeException('Failed to start ProgressBar');
-        }
-    }
-
-    private function createProgressBarInstance(): ProgressBar {
-        $progressBar = new ProgressBar(new ConsoleOutput());
-
-        // configure ProgressBar settings
-        $progressBar->setBarWidth( 80 );
-        $progressBar->setRedrawFrequency( 100 );
-        $progressBar->minSecondsBetweenRedraws( 0.1 );
-        $progressBar->maxSecondsBetweenRedraws( 0.2 );
-        $progressBar->setFormat(" %current% of %max%: %message%\n".
-                             " [%bar%] %percent:3s%%\n".
-                             " elapsed: %elapsed:6s%, remaining: %remaining:-6s%, %items_per_second% items/s".(PARALLEL_EXT_LOADED ? "\n" : ',').
-                             " memory: %threads_memory%\n");
-        // set initial values
-        $progressBar->setMessage('Starting...');
-        $progressBar->setMessage('??', 'items_per_second');
-        $progressBar->setMessage('??', 'threads_memory');
-
-        return $progressBar;
     }
 
     /**
@@ -379,9 +272,9 @@ final class Scheduler {
         if ( !PARALLEL_EXT_LOADED) return;
 
         try {
-            // stop runner
+            // stop Runner instance
             self::instance()->send(Event\Type::Close);
-            // gracefully join
+            // wait until Runner instance shutdowns
             self::instance()->recv();
 
         } catch (Channel\Error\Closed | Throwable) {}

@@ -3,7 +3,11 @@
 namespace HDSSolutions\Console\Parallel\Internals\Commands;
 
 use Closure;
+use HDSSolutions\Console\Parallel\Internals\Runner;
 
+/**
+ * Message sent to {@see Runner} to execute {@see Runner::registerWorker()} action
+ */
 final class RegisterWorkerMessage extends ParallelCommandMessage {
 
     /**
