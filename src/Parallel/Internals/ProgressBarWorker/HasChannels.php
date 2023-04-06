@@ -14,7 +14,8 @@ trait HasChannels {
     private function openChannels(): void {
         if ( !PARALLEL_EXT_LOADED) return;
 
-        $this->progressbar_channel = TwoWayChannel::open(self::class);
+        // channel to receive and process ProgressBar events
+        $this->progressbar_channel = TwoWayChannel::make(self::class);
     }
 
     protected function recv(): mixed {
