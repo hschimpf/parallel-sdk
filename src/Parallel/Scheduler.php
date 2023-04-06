@@ -6,7 +6,6 @@ use Closure;
 use Generator;
 use HDSSolutions\Console\Parallel\Exceptions\ParallelException;
 use HDSSolutions\Console\Parallel\Internals\Communication\TwoWayChannel;
-use HDSSolutions\Console\Parallel\Internals\Messages\ProgressBarRegistrationMessage;
 use HDSSolutions\Console\Parallel\Internals\Commands;
 use HDSSolutions\Console\Parallel\Internals\Task;
 use HDSSolutions\Console\Parallel\Internals\RegisteredWorker;
@@ -60,40 +59,6 @@ final class Scheduler {
      */
     private static function instance(): self {
         return self::$instance ??= new self();
-    }
-
-    public static function enableProgressBarOnCurrentWorker(int $steps = 0): bool {
-        $message = new Commands\EnableProgressBarMessage($steps);
-
-        if (PARALLEL_EXT_LOADED) {
-            self::instance()->send($message);
-
-            return self::instance()->recv();
-        }
-
-        return self::instance()->runner->processMessage($message);
-
-return false;
-        self::instance()->initProgressBar();
-
-        if ( !PARALLEL_EXT_LOADED) {
-            // check if ProgressBar isn't already started
-            if ( !self::instance()->progressBarStarted) {
-                // start ProgressBar
-                self::instance()->progressBar->start($steps);
-                self::instance()->progressBarStarted = true;
-
-            } else {
-                // update steps
-                self::instance()->progressBar->setMaxSteps($steps);
-            }
-        }
-
-        // register Worker ProgressBar
-        self::instance()->progressBarChannel?->send(new ProgressBarRegistrationMessage(
-            worker: $registered_worker->getWorkerClass(),
-            steps:  $steps,
-        ));
     }
 
     /**

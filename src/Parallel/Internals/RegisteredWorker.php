@@ -3,9 +3,9 @@
 namespace HDSSolutions\Console\Parallel\Internals;
 
 use Closure;
-use HDSSolutions\Console\Parallel\Scheduler;
 
 final class RegisteredWorker {
+    use Worker\CommunicatesWithRunner;
 
     /**
      * @var bool Flag to identify if this Worker has a ProgressBar
@@ -33,10 +33,19 @@ final class RegisteredWorker {
      * @param  bool  $with_progress  Flag to enable/disable the ProgressBar
      */
     public function withProgress(bool $with_progress = true, int $steps = 0): void {
-        if (false === $this->with_progress = $with_progress) return;
+        // check if caller is Runner
+        $caller = debug_backtrace(!DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1];
+        if (($caller['class'] ?? null) === Runner::class) {
+            // enable with progress flag
+            $this->with_progress = $with_progress;
 
-        // enable ProgressBar thread
-        Scheduler::enableProgressBarOnCurrentWorker($steps);
+            return;
+        }
+
+        // redirect call to Runner instance
+        $this->getRunnerChannel()->send(new Commands\EnableProgressBarMessage($this->getIdentifier(), $steps));
+        // wait until Runner updates worker flag
+        $this->getRunnerChannel()->receive();
     }
 
     public function hasProgressEnabled(): bool {
