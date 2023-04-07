@@ -22,7 +22,7 @@ composer require hds-solutions/parallel-sdk
 ## Usage
 Firstly, you need to set the bootstrap file for parallel. Setting the composer's autoloader is enough. See reference [#1](#references) for more info.
 ```php
-// check if extension is loaded to allow deploying even in envorinments where parallel isn't installed
+// check if extension is loaded to allow deploying even in environments where parallel isn't installed
 if (extension_loaded('parallel')) {
     // set the path to composer's autoloader
     parallel\bootstrap(__DIR__.'/vendor/autoload.php');
@@ -80,8 +80,26 @@ final class ExampleWorker extends ParallelWorker {
 ```php
 use HDSSolutions\Console\Parallel\Scheduler;
 
-$worker = new ExampleWorker();
-Scheduler::using($worker);
+Scheduler::using(ExampleWorker::class);
+```
+
+You can also send parameters to the Worker's constructor.
+```php
+use HDSSolutions\Console\Parallel\ParallelWorker;
+
+final class ExampleWorker extends ParallelWorker {
+
+    public function __construct(
+        private array $multipliers,
+    ) {}
+
+}
+```
+
+```php
+use HDSSolutions\Console\Parallel\Scheduler;
+
+Scheduler::using(ExampleWorker::class, [ 2, 4, 8 ]);
 ```
 
 ### Schedule tasks
@@ -89,10 +107,10 @@ After defining a Worker, you can schedule tasks that will run in parallel.
 ```php
 use HDSSolutions\Console\Parallel\Scheduler;
 
-foreach (range(1, 100) as $task) {
+foreach (range(1, 100) as $task_data) {
     try {
         // tasks will start as soon as a thread is available
-        Scheduler::runTask($task);
+        Scheduler::runTask($task_data);
 
     } catch (Throwable) {
         // if no Worker was defined, a RuntimeException will be thrown
@@ -101,17 +119,52 @@ foreach (range(1, 100) as $task) {
 }
 ```
 
+### Check Tasks state
+Every task has an state. There is also helper functions to check current Task state:
+```php
+use HDSSolutions\Console\Parallel\Scheduler;
+use HDSSolutions\Console\Parallel\Task;
+
+do {
+    $all_processed = true;
+    foreach (Scheduler::getTasks() as $task) {
+        switch (true) {
+            case $task->isPending():
+                $all_processed = false;
+                break;
+    
+            case $task->isBeingProcessed():
+                $all_processed = false;
+                break;
+    
+            case $task->wasProcessed():
+                $result = $task->getResult();
+                break;
+        }
+    }
+} while ($all_processed == false);
+```
+
+### Wait for tasks completion
+Instead of checking every task state, you can wait for all tasks to be processed before continue your code execution.
+```php
+use HDSSolutions\Console\Parallel\Scheduler;
+
+// This will pause execution until all tasks are processed
+Scheduler::awaitTasksCompletion();
+```
+
 ### Get processed tasks result
 
 ```php
 use HDSSolutions\Console\Parallel\Scheduler;
-use HDSSolutions\Console\Parallel\ProcessedTask;
+use HDSSolutions\Console\Parallel\Task;
 
-foreach (Scheduler::getProcessedTasks() as $processed_task) {
+foreach (Scheduler::getTasks() as $task) {
     // you have access to the Worker class that was used to processed the task
-    $worker = $processed_task->getWorkerClass();
+    $worker = $task->getWorkerClass();
     // and the result of the task processed
-    $result = $processed_task->getResult();
+    $result = $task->getResult();
 }
 ```
 
@@ -126,9 +179,8 @@ use HDSSolutions\Console\Parallel\Scheduler;
 
 $tasks = range(1, 10);
 
-$worker = new ExampleWorker();
-Scheduler::using($worker)
-    ->withProgress(steps: count($tasks);
+Scheduler::using(ExampleWorker::class)
+    ->withProgress(steps: count($tasks));
 ```
 
 #### Usage from Worker
@@ -166,14 +218,6 @@ final class ExampleWorker extends ParallelWorker {
  memory: 562 KiB, threads: 12x ~474 KiB, Σ 5,6 MiB ↑ 5,6 MiB
 ```
 
-## Graceful close all resources
-This method will close all resources used internally by the `Scheduler` instance.
-```php
-use HDSSolutions\Console\Parallel\Scheduler;
-
-Scheduler::disconnect();
-```
-
 ### References
 1. [parallel\bootstrap()](https://www.php.net/manual/en/parallel.bootstrap.php)
 2. [Parallel\Runtime::run() Task Characteristics](https://www.php.net/manual/en/parallel-runtime.run.php#refsect1-parallel-runtime.run-closure-characteristics)
@@ -186,3 +230,4 @@ If you encounter any security related issue, feel free to raise a ticket on the 
 
 # Licence
 GPL-3.0 Please see [License File](LICENSE) for more information.
+

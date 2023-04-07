@@ -3,6 +3,7 @@
 namespace HDSSolutions\Console\Tests;
 
 use HDSSolutions\Console\Parallel\Internals\Worker;
+use HDSSolutions\Console\Parallel\RegisteredWorker;
 use HDSSolutions\Console\Parallel\Scheduler;
 use HDSSolutions\Console\Tests\Workers;
 use PHPUnit\Framework\TestCase;
@@ -23,22 +24,19 @@ final class ParallelTest extends TestCase {
         }
     }
 
-    /**
-     * @depends testThatParallelExtensionIsAvailable
-     */
     public function testThatWorkerMustBeDefinedValidates(): void {
         $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('No worker is defined');
         Scheduler::runTask(123);
     }
 
-    /**
-     * @depends testThatParallelExtensionIsAvailable
-     */
+    public function testThatWorkersCanBeRegistered(): void {
+        $this->assertInstanceOf(RegisteredWorker::class,
+            Scheduler::using(Workers\EmptyWorker::class, [ true, 123, 'false' ]));
+    }
+
     public function testThatClosureCanBeUsedAsWorker(): void {
-        Scheduler::using(static function($input) {
-            usleep(random_int(100, 500) * 1000);
-            return $input * 2;
-        });
+        Scheduler::using(static fn($input) => $input * 2);
 
         foreach ($tasks = range(1, 10) as $task) {
             try { Scheduler::runTask($task);
@@ -47,19 +45,21 @@ final class ParallelTest extends TestCase {
             }
         }
 
+        Scheduler::awaitTasksCompletion();
+
         $results = [];
-        foreach (Scheduler::getProcessedTasks() as $processed_task) {
-            $this->assertEquals(Worker::class, $processed_task->getWorkerClass());
-            $results[] = $processed_task->getResult();
+        foreach (Scheduler::getTasks() as $task) {
+            $this->assertEquals(Worker::class, $task->getWorkerClass());
+            $results[] = $task->getResult();
         }
         // tasks results must be the same count
         $this->assertCount(count($tasks), $results);
+
+        // remove all Tasks
+        Scheduler::removeTasks();
     }
 
-    /**
-     * @depends testThatParallelExtensionIsAvailable
-     */
-    public function testParallel(): void {
+    public function testProgressBar(): void {
         $workers = [
             Workers\TestWorker::class,
             Workers\AnotherWorker::class,
@@ -90,17 +90,20 @@ final class ParallelTest extends TestCase {
             }
         }
 
+        Scheduler::awaitTasksCompletion();
+
         $results = [];
         // fetch processed tasks and store their results
-        foreach (Scheduler::getProcessedTasks() as $processed_task) {
-            $result = $processed_task->getResult();
+        foreach (Scheduler::getTasks() as $task) {
+            $result = $task->getResult();
             echo sprintf("Task result from #%s => %u\n",
-                $worker_class = $processed_task->getWorkerClass(),
+                $worker_class = $task->getWorkerClass(),
                 $result[1]);
             $results[$worker_class][] = $result;
         }
 
-        Scheduler::disconnect();
+        // remove all Tasks
+        Scheduler::removeTasks();
 
         // check results
         foreach ($workers as $worker) {
@@ -111,12 +114,33 @@ final class ParallelTest extends TestCase {
 
             // tasks results must be the same count
             $this->assertCount(count($worker_tasks), $worker_results);
-            // tasks results must be in different order
-            $this->assertNotEquals($worker_tasks, array_column($worker_results, 0), 'Arrays are in the same order');
+            // tasks results must not be in different order
+            $this->assertEquals($worker_tasks, array_column($worker_results, 0), 'Arrays are in different order');
 
             $result = array_shift($worker_results);
             $this->assertEquals($result[1], $result[0] * array_product($multipliers));
         }
+    }
+
+    public function testThatChannelsDontOverlap(): void {
+        Scheduler::using(Workers\WorkerWithSubWorkers::class);
+
+        foreach (range(1, 10) as $task) {
+            try { Scheduler::runTask($task);
+            } catch (Throwable) {
+                Scheduler::stop();
+            }
+        }
+
+        Scheduler::awaitTasksCompletion();
+
+        foreach (Scheduler::getTasks() as $task) {
+            // task result must be the same count as sub-tasks
+            $this->assertCount($task->getData()[0], $task->getResult());
+        }
+
+        // remove all Tasks
+        Scheduler::removeTasks();
     }
 
 }

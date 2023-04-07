@@ -2,8 +2,6 @@
 
 namespace HDSSolutions\Console\Parallel\Contracts;
 
-use HDSSolutions\Console\Parallel\ProcessedTask;
-
 interface ParallelWorker {
 
     /**
@@ -92,10 +90,8 @@ interface ParallelWorker {
     public function getFinishedAt(): ?float;
 
     /**
-     * Returns the processed task
-     *
-     * @return ProcessedTask Processed task
+     * @return mixed Processed Task result
      */
-    public function getProcessedTask(): ProcessedTask;
+    public function getResult(): mixed;
 
 }
