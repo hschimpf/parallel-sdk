@@ -6,7 +6,7 @@ spl_autoload_register(static function($class) {
     // build class file path
     $classfile = sprintf('%s/%s.php', __DIR__,
         // replace namespace and invert slashes
-        str_replace([ 'HDSSolutions\\Console\\', '\\' ], [ '', '/' ], $class));
+        str_replace([ 'HDSSolutions\\Console\\Parallel\\', '\\' ], [ '', '/' ], $class));
     // check if exists
     if (is_file($classfile)) {
         // include class file

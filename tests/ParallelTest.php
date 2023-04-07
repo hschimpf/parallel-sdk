@@ -2,7 +2,6 @@
 
 namespace HDSSolutions\Console\Tests;
 
-use HDSSolutions\Console\Parallel\Contracts\Task;
 use HDSSolutions\Console\Parallel\Internals\RegisteredWorker;
 use HDSSolutions\Console\Parallel\Internals\Worker;
 use HDSSolutions\Console\Parallel\Scheduler;
