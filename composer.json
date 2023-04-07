@@ -21,7 +21,7 @@
             "src/helpers.php"
         ],
         "psr-4": {
-            "HDSSolutions\\Console\\": "src/"
+            "HDSSolutions\\Console\\Parallel\\": "src/"
         }
     },
     "require-dev": {

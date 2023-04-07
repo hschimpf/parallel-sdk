@@ -1,5 +1,9 @@
 <?php declare(strict_types=1);
 
+const PARALLEL_AUTOLOADER = __DIR__.'/autoload.php';
+
+define("PARALLEL_EXT_LOADED", extension_loaded('parallel'));
+
 if ( !function_exists('cpu_count')) {
     function cpu_count(float $percent = 1.0): int {
         $cpu_count = 1;
