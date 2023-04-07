@@ -2,6 +2,7 @@
 
 namespace HDSSolutions\Console\Tests;
 
+use HDSSolutions\Console\Parallel\Contracts\Task;
 use HDSSolutions\Console\Parallel\Internals\RegisteredWorker;
 use HDSSolutions\Console\Parallel\Internals\Worker;
 use HDSSolutions\Console\Parallel\Scheduler;
@@ -59,7 +60,7 @@ final class ParallelTest extends TestCase {
         Scheduler::removeTasks();
     }
 
-    public function testParallel(): void {
+    public function testProgressBar(): void {
         $workers = [
             Workers\TestWorker::class,
             Workers\AnotherWorker::class,
@@ -120,6 +121,27 @@ final class ParallelTest extends TestCase {
             $result = array_shift($worker_results);
             $this->assertEquals($result[1], $result[0] * array_product($multipliers));
         }
+    }
+
+    public function testThatChannelsDontOverlap(): void {
+        Scheduler::using(Workers\WorkerWithSubWorkers::class);
+
+        foreach (range(1, 10) as $task) {
+            try { Scheduler::runTask($task);
+            } catch (Throwable) {
+                Scheduler::stop();
+            }
+        }
+
+        Scheduler::awaitTasksCompletion();
+
+        foreach (Scheduler::getTasks() as $task) {
+            // task result must be the same count as sub-tasks
+            $this->assertCount($task->getData()[0], $task->getResult());
+        }
+
+        // remove all Tasks
+        Scheduler::removeTasks();
     }
 
 }
