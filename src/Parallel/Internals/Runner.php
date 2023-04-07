@@ -56,6 +56,7 @@ final class Runner {
 
         // register worker
         $this->workers[] = $registered_worker = new RegisteredWorker(
+            uuid:         $this->uuid,
             identifier:   $idx = count($this->workers),
             worker_class: is_string($worker) ? $worker : Worker::class,
             closure:      $worker instanceof Closure ? $worker : null,

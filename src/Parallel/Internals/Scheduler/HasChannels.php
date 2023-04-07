@@ -22,7 +22,7 @@ trait HasChannels {
         // open channel if not already opened
         while ($this->runner_channel === null) {
             // open channel to communicate with the Runner instance
-            try { $this->runner_channel = TwoWayChannel::open(Runner::class);
+            try { $this->runner_channel = TwoWayChannel::open(Runner::class.'@'.$this->uuid);
             // wait 25ms if channel does not exist yet and retry
             } catch (Channel\Error\Existence) { usleep(25_000); }
         }
@@ -34,14 +34,14 @@ trait HasChannels {
         // open channel if not already opened
         while ($this->runner_channel === null) {
             // open channel to communicate with the Runner instance
-            try { $this->runner_channel = TwoWayChannel::open(Runner::class);
+            try { $this->runner_channel = TwoWayChannel::open(Runner::class.'@'.$this->uuid);
             // wait 25ms if channel does not exist yet and retry
             } catch (Channel\Error\Existence) { usleep(25_000); }
         }
         // open channel if not already opened
         while ($this->tasks_channel === null) {
             // open channel to receive the tasks list
-            try { $this->tasks_channel = Channel::open(Runner::class.'@'.$this->uuid);
+            try { $this->tasks_channel = Channel::open(Runner::class.'@'.$this->uuid.':tasks');
             // wait 25ms if channel does not exist yet and retry
             } catch (Channel\Error\Existence) { usleep(25_000); }
         }

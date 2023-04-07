@@ -17,11 +17,11 @@ trait HasEater {
         if ( !PARALLEL_EXT_LOADED) return;
 
         // run an eater to keep updating states
-        $this->eater = (new Runtime(PARALLEL_AUTOLOADER))->run(static function(): void {
+        $this->eater = (new Runtime(PARALLEL_AUTOLOADER))->run(static function(string $uuid): void {
             // create communication channel
-            $channel = TwoWayChannel::make(Runner::class.':eater');
+            $channel = TwoWayChannel::make(Runner::class.'@'.$uuid.':eater');
             // open communication channel with the Runner
-            $runner_listener = TwoWayChannel::open(Runner::class);
+            $runner_listener = TwoWayChannel::open(Runner::class.'@'.$uuid);
 
             // notify successful start
             $channel->release();
@@ -35,7 +35,7 @@ trait HasEater {
 
             // close communication channel
             $channel->close();
-        });
+        }, [ $this->uuid ]);
 
         // wait until Eater starts
         $this->getEaterChannel()->receive();

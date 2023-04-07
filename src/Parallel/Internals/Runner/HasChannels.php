@@ -26,16 +26,16 @@ trait HasChannels {
         if ( !PARALLEL_EXT_LOADED) return;
 
         // channels to receive and process events
-        $this->channel = TwoWayChannel::make(self::class);
+        $this->channel = TwoWayChannel::make(self::class.'@'.$this->uuid);
         // channel to output tasks
-        $this->tasks_channel = Channel::make(self::class.'@'.$this->uuid);
+        $this->tasks_channel = Channel::make(self::class.'@'.$this->uuid.':tasks');
     }
 
     protected function getEaterChannel(): TwoWayChannel {
         // open channel if not already opened
         while ($this->eater_channel === null) {
             // open channel to communicate with the Eater instance
-            try { $this->eater_channel = TwoWayChannel::open(self::class.':eater');
+            try { $this->eater_channel = TwoWayChannel::open(self::class.'@'.$this->uuid.':eater');
             // wait 25ms if channel does not exist yet and retry
             } catch (Channel\Error\Existence) { usleep(25_000); }
         }

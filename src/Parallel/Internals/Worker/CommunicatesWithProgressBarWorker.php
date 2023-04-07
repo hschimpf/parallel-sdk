@@ -27,7 +27,7 @@ trait CommunicatesWithProgressBarWorker {
         $this->identifier = $identifier;
 
         // open communication channel with the ProgressBar worker
-        do { try { $this->progressbar_channel = TwoWayChannel::open(ProgressBarWorker::class);
+        do { try { $this->progressbar_channel = TwoWayChannel::open(ProgressBarWorker::class.'@'.$uuid);
         // wait 25ms if channel does not exist yet and retry
         } catch (Channel\Error\Existence) { usleep(25_000); }
         // try until channel is opened

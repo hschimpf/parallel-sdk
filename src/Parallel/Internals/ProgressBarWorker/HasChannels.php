@@ -15,7 +15,7 @@ trait HasChannels {
         if ( !PARALLEL_EXT_LOADED) return;
 
         // channel to receive and process ProgressBar events
-        $this->progressbar_channel = TwoWayChannel::make(self::class);
+        $this->progressbar_channel = TwoWayChannel::make(self::class.'@'.$this->uuid);
     }
 
     protected function recv(): mixed {

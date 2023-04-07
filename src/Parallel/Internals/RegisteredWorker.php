@@ -15,6 +15,7 @@ final class RegisteredWorker {
     private int $steps;
 
     public function __construct(
+        private string $uuid,
         private int $identifier,
         private string $worker_class,
         private ?Closure $closure = null,
