@@ -4,7 +4,6 @@ namespace HDSSolutions\Console\Parallel;
 
 use Closure;
 use HDSSolutions\Console\Parallel\Internals\Commands;
-use HDSSolutions\Console\Parallel\Internals\Runner;
 
 final class RegisteredWorker {
     use Internals\Worker\CommunicatesWithRunner;
@@ -40,7 +39,7 @@ final class RegisteredWorker {
     public function withProgress(bool $with_progress = true, int $steps = 0): void {
         // check if caller is Runner
         $caller = debug_backtrace(!DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1];
-        if (($caller['class'] ?? null) === Runner::class || !PARALLEL_EXT_LOADED) {
+        if (($caller['class'] ?? null) === Internals\Runner::class || !PARALLEL_EXT_LOADED) {
             // enable with progress flag
             $this->with_progress = $with_progress;
             $this->steps = $steps;
