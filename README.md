@@ -119,6 +119,32 @@ foreach (range(1, 100) as $task_data) {
 }
 ```
 
+### Check Tasks state
+Every task has an state. There is also helper functions to check current Task state:
+```php
+use HDSSolutions\Console\Parallel\Scheduler;
+use HDSSolutions\Console\Parallel\Task;
+
+do {
+    $all_processed = true;
+    foreach (Scheduler::getTasks() as $task) {
+        switch (true) {
+            case $task->isPending():
+                $all_processed = false;
+                break;
+    
+            case $task->isBeingProcessed():
+                $all_processed = false;
+                break;
+    
+            case $task->wasProcessed():
+                $result = $task->getResult();
+                break;
+        }
+    }
+} while ($all_processed == false);
+```
+
 ### Wait for tasks completion
 Instead of checking every task state, you can wait for all tasks to be processed before continue your code execution.
 ```php
@@ -132,7 +158,7 @@ Scheduler::awaitTasksCompletion();
 
 ```php
 use HDSSolutions\Console\Parallel\Scheduler;
-use HDSSolutions\Console\Parallel\ProcessedTask;
+use HDSSolutions\Console\Parallel\Task;
 
 foreach (Scheduler::getTasks() as $task) {
     // you have access to the Worker class that was used to processed the task
