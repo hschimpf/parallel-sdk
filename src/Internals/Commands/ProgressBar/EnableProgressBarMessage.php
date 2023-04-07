@@ -1,7 +1,8 @@
 <?php declare(strict_types=1);
 
-namespace HDSSolutions\Console\Parallel\Internals\Commands;
+namespace HDSSolutions\Console\Parallel\Internals\Commands\ProgressBar;
 
+use HDSSolutions\Console\Parallel\Internals\Commands\ParallelCommandMessage;
 use HDSSolutions\Console\Parallel\Internals\Runner;
 
 /**

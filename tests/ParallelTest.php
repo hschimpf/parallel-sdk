@@ -2,8 +2,8 @@
 
 namespace HDSSolutions\Console\Tests;
 
-use HDSSolutions\Console\Parallel\Internals\RegisteredWorker;
 use HDSSolutions\Console\Parallel\Internals\Worker;
+use HDSSolutions\Console\Parallel\RegisteredWorker;
 use HDSSolutions\Console\Parallel\Scheduler;
 use HDSSolutions\Console\Tests\Workers;
 use PHPUnit\Framework\TestCase;

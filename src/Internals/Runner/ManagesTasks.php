@@ -3,11 +3,11 @@
 namespace HDSSolutions\Console\Parallel\Internals\Runner;
 
 use HDSSolutions\Console\Parallel\Contracts\ParallelWorker;
-use HDSSolutions\Console\Parallel\Internals\Messages\ProgressBarActionMessage;
+use HDSSolutions\Console\Parallel\Internals\Commands;
 use HDSSolutions\Console\Parallel\Internals\Messages\ProgressBarRegistrationMessage;
-use HDSSolutions\Console\Parallel\Internals\RegisteredWorker;
-use HDSSolutions\Console\Parallel\Internals\Task;
 use HDSSolutions\Console\Parallel\Internals\Worker;
+use HDSSolutions\Console\Parallel\RegisteredWorker;
+use HDSSolutions\Console\Parallel\Task;
 use parallel\Channel;
 use parallel\Future;
 use RuntimeException;
@@ -146,12 +146,12 @@ trait ManagesTasks {
                 // init progressbar
                 $this->initProgressBar();
                 // register worker
-                $this->progressBar->processMessage(new ProgressBarRegistrationMessage(
+                $this->progressBar->processMessage(new Commands\ProgressBar\ProgressBarRegistrationMessage(
                     worker: $worker_class,
                     steps:  $registered_worker->getSteps(),
                 ));
                 // connect worker to ProgressBar
-                $worker->connectProgressBar(fn(ProgressBarActionMessage $message) => $this->progressBar->processMessage($message));
+                $worker->connectProgressBar(fn(Commands\ProgressBar\ProgressBarActionMessage $message) => $this->progressBar->processMessage($message));
             }
 
             $task->setState(Task::STATE_Processing);

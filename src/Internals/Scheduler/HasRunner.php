@@ -4,7 +4,7 @@ namespace HDSSolutions\Console\Parallel\Internals\Scheduler;
 
 use Closure;
 use HDSSolutions\Console\Parallel\Internals\Commands;
-use HDSSolutions\Console\Parallel\Internals\RegisteredWorker;
+use HDSSolutions\Console\Parallel\RegisteredWorker;
 use HDSSolutions\Console\Parallel\Internals\Runner;
 use parallel\Future;
 
@@ -16,7 +16,7 @@ trait HasRunner {
     private Future | Runner $runner;
 
     private function getRegisteredWorker(string $worker): RegisteredWorker | false {
-        $message = new Commands\GetRegisteredWorkerMessage($worker);
+        $message = new Commands\Runner\GetRegisteredWorkerMessage($worker);
 
         if (PARALLEL_EXT_LOADED) {
             $this->send($message);
@@ -28,7 +28,7 @@ trait HasRunner {
     }
 
     private function registerWorker(string | Closure $worker, array $args): RegisteredWorker {
-        $message = new Commands\RegisterWorkerMessage($worker, $args);
+        $message = new Commands\Runner\RegisterWorkerMessage($worker, $args);
 
         if (PARALLEL_EXT_LOADED) {
             $this->send($message);

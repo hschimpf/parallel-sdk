@@ -6,8 +6,6 @@ use Closure;
 use Generator;
 use HDSSolutions\Console\Parallel\Exceptions\ParallelException;
 use HDSSolutions\Console\Parallel\Internals\Commands;
-use HDSSolutions\Console\Parallel\Internals\Task;
-use HDSSolutions\Console\Parallel\Internals\RegisteredWorker;
 use parallel\Channel;
 use parallel\Events\Event;
 use parallel\Runtime;
@@ -91,7 +89,7 @@ final class Scheduler {
      * @link https://www.php.net/manual/en/parallel.run
      */
     public static function runTask(mixed ...$data): int {
-        $message = new Commands\QueueTaskMessage($data);
+        $message = new Commands\Runner\QueueTaskMessage($data);
 
         if (PARALLEL_EXT_LOADED) {
             self::instance()->send($message);
@@ -112,7 +110,7 @@ final class Scheduler {
      * Calling this method will pause execution until all tasks are finished.
      */
     public static function awaitTasksCompletion(): bool {
-        $message = new Commands\WaitTasksCompletionMessage();
+        $message = new Commands\Runner\WaitTasksCompletionMessage();
 
         if (PARALLEL_EXT_LOADED) {
             $has_pending_tasks = false;
@@ -135,7 +133,7 @@ final class Scheduler {
      * @return Task[] | Generator List of Tasks
      */
     public static function getTasks(): Generator | array {
-        $message = new Commands\GetTasksMessage();
+        $message = new Commands\Runner\GetTasksMessage();
 
         if (PARALLEL_EXT_LOADED) {
             self::instance()->send($message);
@@ -157,7 +155,7 @@ final class Scheduler {
      * @return bool
      */
     public static function removeTasks(): bool {
-        $message = new Commands\RemoveTasksMessage();
+        $message = new Commands\Runner\RemoveTasksMessage();
 
         if (PARALLEL_EXT_LOADED) {
             self::instance()->send($message);

@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace HDSSolutions\Console\Parallel\Internals;
+namespace HDSSolutions\Console\Parallel;
 
 use HDSSolutions\Console\Parallel\Contracts;
 

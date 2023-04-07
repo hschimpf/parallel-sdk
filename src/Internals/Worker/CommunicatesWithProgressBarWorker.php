@@ -4,8 +4,7 @@ namespace HDSSolutions\Console\Parallel\Internals\Worker;
 
 use Closure;
 use HDSSolutions\Console\Parallel\Internals\Communication\TwoWayChannel;
-use HDSSolutions\Console\Parallel\Internals\Messages\ProgressBarActionMessage;
-use HDSSolutions\Console\Parallel\Internals\Messages\StatsReportMessage;
+use HDSSolutions\Console\Parallel\Internals\Commands;
 use HDSSolutions\Console\Parallel\Internals\ProgressBarWorker;
 use parallel\Channel;
 
@@ -57,7 +56,7 @@ trait CommunicatesWithProgressBarWorker {
     }
 
     private function newProgressBarAction(string $action, ...$args): void {
-        $message = new ProgressBarActionMessage(
+        $message = new Commands\ProgressBar\ProgressBarActionMessage(
             action: $action,
             args:   $args,
         );
@@ -65,7 +64,7 @@ trait CommunicatesWithProgressBarWorker {
         // check if parallel is available
         if (PARALLEL_EXT_LOADED) {
             // report memory usage
-            $this->progressbar_channel->send(new StatsReportMessage(
+            $this->progressbar_channel->send(new Commands\ProgressBar\StatsReportMessage(
                 worker_id:    $this->identifier,
                 memory_usage: memory_get_usage(),
             ));

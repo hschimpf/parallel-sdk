@@ -29,7 +29,7 @@ trait HasEater {
             // every 25ms
             do { usleep(25_000);
                 // send an Update message to the Runner instance
-                $runner_listener->send(new Commands\UpdateMessage());
+                $runner_listener->send(new Commands\Runner\UpdateMessage());
             // until we receive a stop signal on our channel
             } while (Event\Type::Close !== $channel->receive());
 

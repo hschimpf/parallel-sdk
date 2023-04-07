@@ -2,7 +2,7 @@
 
 namespace HDSSolutions\Console\Parallel\Internals\Runner;
 
-use HDSSolutions\Console\Parallel\Internals\RegisteredWorker;
+use HDSSolutions\Console\Parallel\RegisteredWorker;
 
 trait ManagesWorkers {
 

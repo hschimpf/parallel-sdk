@@ -4,7 +4,8 @@ namespace HDSSolutions\Console\Parallel\Internals;
 
 use Closure;
 use HDSSolutions\Console\Parallel\Internals\Common;
-use HDSSolutions\Console\Parallel\Internals\Messages\ProgressBarRegistrationMessage;
+use HDSSolutions\Console\Parallel\RegisteredWorker;
+use HDSSolutions\Console\Parallel\Task;
 use RuntimeException;
 
 final class Runner {
@@ -130,7 +131,7 @@ final class Runner {
 
         $this->initProgressBar();
 
-        $this->progressbar_channel->send(new ProgressBarRegistrationMessage(
+        $this->progressbar_channel->send(new Commands\ProgressBar\ProgressBarRegistrationMessage(
             worker: $worker->getWorkerClass(),
             steps:  $steps,
         ));

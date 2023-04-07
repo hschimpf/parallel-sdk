@@ -1,11 +1,13 @@
 <?php declare(strict_types=1);
 
-namespace HDSSolutions\Console\Parallel\Internals;
+namespace HDSSolutions\Console\Parallel;
 
 use Closure;
+use HDSSolutions\Console\Parallel\Internals\Commands;
+use HDSSolutions\Console\Parallel\Internals\Runner;
 
 final class RegisteredWorker {
-    use Worker\CommunicatesWithRunner;
+    use Internals\Worker\CommunicatesWithRunner;
 
     /**
      * @var bool Flag to identify if this Worker has a ProgressBar
@@ -47,7 +49,7 @@ final class RegisteredWorker {
         }
 
         // redirect call to Runner instance
-        $this->getRunnerChannel()->send(new Commands\EnableProgressBarMessage($this->getIdentifier(), $steps));
+        $this->getRunnerChannel()->send(new Commands\ProgressBar\EnableProgressBarMessage($this->getIdentifier(), $steps));
         // wait until Runner updates worker flag
         $this->getRunnerChannel()->receive();
     }
