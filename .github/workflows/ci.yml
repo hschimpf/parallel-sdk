@@ -1,0 +1,31 @@
+name: PHPUnit Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install PHP 8.0 with ZTS
+      uses: shivammathur/setup-php@v2
+      env:
+        phpts: ts
+      with:
+        php-version: '8.0'
+        extensions: parallel
+        ini-values: extension=parallel.so, zend_extension=opcache.so, opcache.enable_cli=1, opcache.enable=1, opcache.jit_buffer_size=64M, opcache.jit=1205, opcache.enable_file_override=1, opcache.max_accelerated_files=4000, opcache.validate_timestamps=0, opcache.interned_strings_buffer=8
+        coverage: none
+
+    - name: Install dependencies
+      run: composer install --no-interaction --no-progress --no-suggest
+
+    - name: Run PHPUnit Tests
+      run: ./vendor/bin/phpunit

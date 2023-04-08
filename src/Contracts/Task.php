@@ -25,6 +25,11 @@ interface Task {
     public const STATE_Processed = 3;
 
     /**
+     * ## Task processing was cancelled
+     */
+    public const STATE_Cancelled = 4;
+
+    /**
      * ## Available states of the Task
      */
     public const STATES = [
@@ -32,6 +37,7 @@ interface Task {
         self::STATE_Starting,
         self::STATE_Processing,
         self::STATE_Processed,
+        self::STATE_Cancelled,
     ];
 
     /**
@@ -77,6 +83,11 @@ interface Task {
      * @return bool True if the Task was processed
      */
     public function wasProcessed(): bool;
+
+    /**
+     * @return bool True if the Task was cancelled during processing
+     */
+    public function wasCancelled(): bool;
 
     /**
      * @return mixed Result of the Task

@@ -4,7 +4,6 @@ namespace HDSSolutions\Console\Parallel\Internals\Runner;
 
 use HDSSolutions\Console\Parallel\Contracts\ParallelWorker;
 use HDSSolutions\Console\Parallel\Internals\Commands;
-use HDSSolutions\Console\Parallel\Internals\Messages\ProgressBarRegistrationMessage;
 use HDSSolutions\Console\Parallel\Internals\Worker;
 use HDSSolutions\Console\Parallel\RegisteredWorker;
 use HDSSolutions\Console\Parallel\Task;

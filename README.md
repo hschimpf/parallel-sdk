@@ -1,7 +1,7 @@
 # Parallel SDK
 An implementation of [krakjoe/parallel](https://github.com/krakjoe/parallel) PHP extension.
 
-[![Latest Stable Version](https://img.shields.io/packagist/v/hds-solutions/parallel-sdk?label=stable&color=009664)](https://github.com/hschimpf/parallel-sdk/releases/latest) [![License](https://img.shields.io/github/license/hds-solutions/parallel-sdk?color=80B2CB)](https://github.com/hschimpf/parallel-sdk/blob/main/LICENSE) [![Total Downloads](https://img.shields.io/packagist/dt/hds-solutions/parallel-sdk?color=878787)](https://packagist.org/packages/hds-solutions/parallel-sdk) [![PHP Version Require](https://img.shields.io/packagist/dependency-v/hds-solutions/parallel-sdk/php?color=006496)](https://packagist.org/packages/hds-solutions/parallel-sdk)
+[![Latest Stable Version](https://img.shields.io/packagist/v/hds-solutions/parallel-sdk?label=stable&color=009664)](https://github.com/hschimpf/parallel-sdk/releases/latest) [![CI](https://img.shields.io/github/checks-status/hds-solutions/parallel-sdk/main)](https://github.com/hschimpf/parallel-sdk/actions/workflows/ci.yml) [![License](https://img.shields.io/github/license/hds-solutions/parallel-sdk?color=80B2CB)](https://github.com/hschimpf/parallel-sdk/blob/main/LICENSE) [![Total Downloads](https://img.shields.io/packagist/dt/hds-solutions/parallel-sdk?color=878787)](https://packagist.org/packages/hds-solutions/parallel-sdk) [![PHP Version Require](https://img.shields.io/packagist/dependency-v/hds-solutions/parallel-sdk/php?color=006496)](https://packagist.org/packages/hds-solutions/parallel-sdk)
 
 This library is designed to work even if the `parallel` extension isn't available. In that case, the tasks will be executed un sequential order.
 That allow that your code can be deployed in any environment, and if `parallel` is enabled you will get the advantage of parallel processing.
@@ -165,6 +165,57 @@ foreach (Scheduler::getTasks() as $task) {
     $worker = $task->getWorkerClass();
     // and the result of the task processed
     $result = $task->getResult();
+}
+```
+
+### Remove pending tasks
+You can stop processing queued tasks if your process needs to stop earlier.
+```php
+use HDSSolutions\Console\Parallel\Scheduler;
+use HDSSolutions\Console\Parallel\Task;
+
+// this will remove tasks from the pending queue
+Scheduler::removePendingTasks();
+
+// after cleaning the queue, you should wait for tasks that are currently being processed to finish
+Scheduler::awaitTasksCompletion();
+
+$results = [];
+$unprocessed_tasks = [];
+foreach (Scheduler::getTasks() as $task) {
+    if ($task->wasProcessed()) {
+        $results[] = $task->getResult();
+    } else {
+        // tasks that were not processed, will remain in the Pending state
+        $unprocessed_tasks[] = $task;
+    }
+}
+```
+
+### Stop all processing immediately
+If you need to stop all right away, you can call the `Scheduler::stop()` method. This will stop processing all tasks immediately.
+```php
+use HDSSolutions\Console\Parallel\Scheduler;
+use HDSSolutions\Console\Parallel\Task;
+
+// this will stop processing tasks immediately
+Scheduler::stop();
+
+// in this state, Tasks should have 3 of the following states
+foreach (Scheduler::getTasks() as $task) {
+    switch (true) {
+        case $task->isPending():
+            // Task was never processed
+            break;
+
+        case $task->wasProcessed():
+            // Task was processed by the Worker
+            break;
+
+        case $task->wasCancelled():
+            // Task was cancelled while was being processed
+            break;
+    }
 }
 ```
 
