@@ -56,7 +56,7 @@ final class ParallelTest extends TestCase {
         $this->assertCount(count($tasks), $results);
 
         // remove all Tasks
-        Scheduler::removeTasks();
+        Scheduler::removeAllTasks();
     }
 
     public function testProgressBar(): void {
@@ -103,7 +103,7 @@ final class ParallelTest extends TestCase {
         }
 
         // remove all Tasks
-        Scheduler::removeTasks();
+        Scheduler::removeAllTasks();
 
         // check results
         foreach ($workers as $worker) {
@@ -120,6 +120,69 @@ final class ParallelTest extends TestCase {
             $result = array_shift($worker_results);
             $this->assertEquals($result[1], $result[0] * array_product($multipliers));
         }
+    }
+
+    public function testThatTasksCanBeRemovedFromQueue(): void {
+        Scheduler::using(Workers\LongRunningWorker::class);
+
+        foreach (range(1000, 20000, 50) as $ms) {
+            try { Scheduler::runTask($ms);
+            } catch (Throwable) {
+                Scheduler::stop();
+            }
+        }
+
+        // wait 100ms and remove pending tasks
+        usleep(100_000);
+        Scheduler::removePendingTasks();
+
+        // wait for running tasks to end
+        Scheduler::awaitTasksCompletion();
+
+        $has_pending_tasks = false;
+        $has_processed_tasks = false;
+        $has_cancelled_tasks = false;
+        foreach (Scheduler::getTasks() as $task) {
+            $has_pending_tasks = $has_pending_tasks || $task->isPending();
+            $has_processed_tasks = $has_processed_tasks || $task->wasProcessed();
+            $has_cancelled_tasks = $has_cancelled_tasks || $task->wasCancelled();
+        }
+
+        $this->assertTrue($has_pending_tasks);
+        $this->assertTrue($has_processed_tasks);
+        $this->assertFalse($has_cancelled_tasks);
+
+        Scheduler::removeAllTasks();
+    }
+
+    public function testThatTasksCanBeCancelled(): void {
+        Scheduler::using(Workers\LongRunningWorker::class);
+
+        foreach (range(100, 20000, 50) as $ms) {
+            try { Scheduler::runTask($ms);
+            } catch (Throwable) {
+                Scheduler::stop();
+            }
+        }
+
+        // wait 200ms and stop all
+        usleep(200_000);
+        Scheduler::stop();
+
+        $has_pending_tasks = false;
+        $has_processed_tasks = false;
+        $has_cancelled_tasks = false;
+        foreach (Scheduler::getTasks() as $task) {
+            $has_pending_tasks = $has_pending_tasks || $task->isPending();
+            $has_processed_tasks = $has_processed_tasks || $task->wasProcessed();
+            $has_cancelled_tasks = $has_cancelled_tasks || $task->wasCancelled();
+        }
+
+        $this->assertTrue($has_pending_tasks);
+        $this->assertTrue($has_processed_tasks);
+        $this->assertTrue($has_cancelled_tasks);
+
+        Scheduler::removeAllTasks();
     }
 
     public function testThatChannelsDontOverlap(): void {
@@ -140,7 +203,7 @@ final class ParallelTest extends TestCase {
         }
 
         // remove all Tasks
-        Scheduler::removeTasks();
+        Scheduler::removeAllTasks();
     }
 
 }
