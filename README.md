@@ -1,7 +1,7 @@
 # Parallel SDK
 An implementation of [krakjoe/parallel](https://github.com/krakjoe/parallel) PHP extension.
 
-[![Latest Stable Version](http://poser.pugx.org/hds-solutions/parallel-sdk/v)](https://packagist.org/packages/hds-solutions/parallel-sdk) [![Total Downloads](http://poser.pugx.org/hds-solutions/parallel-sdk/downloads)](https://packagist.org/packages/hds-solutions/parallel-sdk) [![License](http://poser.pugx.org/hds-solutions/parallel-sdk/license)](https://packagist.org/packages/hds-solutions/parallel-sdk) [![PHP Version Require](http://poser.pugx.org/hds-solutions/parallel-sdk/require/php)](https://packagist.org/packages/hds-solutions/parallel-sdk)
+[![Latest Stable Version](http://poser.pugx.org/hds-solutions/parallel-sdk/v)](https://packagist.org/packages/hds-solutions/parallel-sdk) [![CI](https://img.shields.io/github/checks-status/hds-solutions/parallel-sdk/main)](https://github.com/hschimpf/parallel-sdk/actions/workflows/ci.yml) [![Total Downloads](http://poser.pugx.org/hds-solutions/parallel-sdk/downloads)](https://packagist.org/packages/hds-solutions/parallel-sdk) [![License](http://poser.pugx.org/hds-solutions/parallel-sdk/license)](https://packagist.org/packages/hds-solutions/parallel-sdk) [![PHP Version Require](http://poser.pugx.org/hds-solutions/parallel-sdk/require/php)](https://packagist.org/packages/hds-solutions/parallel-sdk)
 
 This library is designed to work even if the `parallel` extension isn't available. In that case, the tasks will be executed un sequential order.
 That allow that your code can be deployed in any environment, and if `parallel` is enabled you will get the advantage of parallel processing.
