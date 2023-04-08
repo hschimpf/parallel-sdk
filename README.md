@@ -3,7 +3,6 @@ An implementation of [krakjoe/parallel](https://github.com/krakjoe/parallel) PHP
 
 [![Latest Stable Version](https://img.shields.io/packagist/v/hds-solutions/parallel-sdk?label=stable&color=009664)](https://github.com/hschimpf/parallel-sdk/releases/latest) [![CI](https://img.shields.io/github/checks-status/hds-solutions/parallel-sdk/main)](https://github.com/hschimpf/parallel-sdk/actions/workflows/ci.yml) [![License](https://img.shields.io/github/license/hds-solutions/parallel-sdk?color=80B2CB)](https://github.com/hschimpf/parallel-sdk/blob/main/LICENSE) [![Total Downloads](https://img.shields.io/packagist/dt/hds-solutions/parallel-sdk?color=878787)](https://packagist.org/packages/hds-solutions/parallel-sdk) [![PHP Version Require](https://img.shields.io/packagist/dependency-v/hds-solutions/parallel-sdk/php?color=006496)](https://packagist.org/packages/hds-solutions/parallel-sdk)
 
-
 This library is designed to work even if the `parallel` extension isn't available. In that case, the tasks will be executed un sequential order.
 That allow that your code can be deployed in any environment, and if `parallel` is enabled you will get the advantage of parallel processing.
 
