@@ -80,4 +80,8 @@ final class Task implements Contracts\Task {
         return $this->getState() === self::STATE_Processed;
     }
 
+    public function wasCancelled(): bool {
+        return $this->getState() === self::STATE_Cancelled;
+    }
+
 }

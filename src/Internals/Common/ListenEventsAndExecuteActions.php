@@ -34,10 +34,7 @@ trait ListenEventsAndExecuteActions {
                 $this->send(new ParallelException($e));
             }
 
-        }} catch (Channel\Error\Closed) {
-            // TODO channel must not be closed
-            $debug = true;
-        }
+        }} catch (Channel\Error\Closed) {}
 
         $this->afterListening();
     }

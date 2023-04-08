@@ -6,12 +6,12 @@ use HDSSolutions\Console\Parallel\Internals\Commands\ParallelCommandMessage;
 use HDSSolutions\Console\Parallel\Internals\Runner;
 
 /**
- * Message sent to {@see Runner} to execute {@see Runner::removeTasks()} action
+ * Message sent to {@see Runner} to execute {@see Runner::stopRunningTasks()} action
  */
-final class RemoveTasksMessage extends ParallelCommandMessage {
+final class StopRunningTasksMessage extends ParallelCommandMessage {
 
     public function __construct() {
-        parent::__construct('remove_tasks');
+        parent::__construct('stop_running_tasks', [ true ]);
     }
 
 }

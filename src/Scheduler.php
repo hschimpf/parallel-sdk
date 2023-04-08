@@ -4,6 +4,7 @@ namespace HDSSolutions\Console\Parallel;
 
 use Closure;
 use Generator;
+use HDSSolutions\Console\Parallel\Contracts\Task;
 use HDSSolutions\Console\Parallel\Exceptions\ParallelException;
 use HDSSolutions\Console\Parallel\Internals\Commands;
 use parallel\Channel;
@@ -149,13 +150,11 @@ final class Scheduler {
     }
 
     /**
-     * Remove all registered Tasks.<br/>
-     * **IMPORTANT**: This will stop processing Tasks immediately and remove **all** Tasks.
-     *
-     * @return bool
+     * Remove all pending tasks from the processing queue.<br>
+     * Tasks that weren't processed will remain in the {@see Task::STATE_Pending} state
      */
-    public static function removeTasks(): bool {
-        $message = new Commands\Runner\RemoveTasksMessage();
+    public static function removePendingTasks(): bool {
+        $message = new Commands\Runner\RemovePendingTasksMessage();
 
         if (PARALLEL_EXT_LOADED) {
             self::instance()->send($message);
@@ -167,7 +166,28 @@ final class Scheduler {
     }
 
     /**
-     * Stops all running tasks. If force is set to false, waits gracefully for all running tasks to finish execution
+     * Remove all registered Tasks.<br/>
+     * **IMPORTANT**: This will stop processing Tasks immediately and remove **all** Tasks.
+     *
+     * @return bool
+     */
+    public static function removeAllTasks(): bool {
+        $message = new Commands\Runner\RemoveAllTasksMessage();
+
+        if (PARALLEL_EXT_LOADED) {
+            self::instance()->send($message);
+
+            return self::instance()->recv();
+        }
+
+        return self::instance()->runner->processMessage($message);
+    }
+
+    /**
+     * Stops all running tasks.<br>
+     * If force is set to false, waits gracefully for all running tasks to finish execution.<br>
+     * Tasks that weren't processed will remain in the {@see Task::STATE_Pending} state.<br>
+     * Tasks that were currently processing, will have the {@see Task::STATE_Cancelled} state.
      *
      * @param  bool  $force  Flag to force task cancellation
      */
@@ -175,7 +195,11 @@ final class Scheduler {
         // check if extension isn't loaded and just return
         if ( !PARALLEL_EXT_LOADED) return;
 
-        if ($force) self::removeTasks();
+        self::removePendingTasks();
+        if ($force) {
+            self::instance()->send(new Commands\Runner\StopRunningTasksMessage());
+            self::instance()->recv();
+        }
 
         self::awaitTasksCompletion();
     }
@@ -185,7 +209,7 @@ final class Scheduler {
      */
     public function __destruct() {
         // remove all Tasks
-        self::removeTasks();
+        self::removeAllTasks();
 
         // check if extension isn't loaded and just return
         if ( !PARALLEL_EXT_LOADED) return;

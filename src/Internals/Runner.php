@@ -7,6 +7,7 @@ use HDSSolutions\Console\Parallel\Internals\Common;
 use HDSSolutions\Console\Parallel\RegisteredWorker;
 use HDSSolutions\Console\Parallel\Task;
 use RuntimeException;
+use Throwable;
 
 final class Runner {
     use Runner\HasChannels;
@@ -110,13 +111,53 @@ final class Runner {
         return false;
     }
 
-    protected function removeTasks(): bool {
+    protected function removeAllTasks(): bool {
         $this->stopRunningTasks();
 
         $this->tasks = [];
         $this->pending_tasks = [];
 
         return $this->send(true);
+    }
+
+    protected function removePendingTasks(): bool {
+        // clear pending tasks
+        $this->pending_tasks = [];
+
+        return $this->send(true);
+    }
+
+    protected function stopRunningTasks(bool $should_return = false): bool {
+        // kill all running threads
+        foreach ($this->running_tasks as $task_id => $running_task) {
+            // check if future is already done working
+            if ( !PARALLEL_EXT_LOADED || $running_task->done()) {
+                // store the ProcessedTask
+                try {
+                    // get the result of the process
+                    [ $task_id, $result ] = PARALLEL_EXT_LOADED ? $running_task->value() : $running_task;
+                    // ignore result if Task was removed, probably through Scheduler::removeTasks()
+                    if (!array_key_exists($task_id, $this->tasks)) continue;
+                    // store result and update state of the Task
+                    $this->tasks[$task_id]
+                        ->setResult($result)
+                        ->setState(Task::STATE_Processed);
+                } catch (Throwable) {}
+
+            } else {
+                // cancel running task
+                try { $running_task->cancel();
+                } catch (Throwable) {}
+                // change task state to Cancelled
+                $this->tasks[$task_id]->setState(Task::STATE_Cancelled);
+            }
+        }
+
+        $this->running_tasks = [];
+
+        if ($should_return) return $this->send(true);
+
+        return true;
     }
 
     protected function enableProgressBar(string $worker_id, int $steps): bool {
@@ -154,11 +195,6 @@ final class Runner {
         }
 
         return true;
-    }
-
-    private function stopRunningTasks(): void {
-        // TODO stop running tasks
-        $todo = true;
     }
 
     public function __destruct() {
