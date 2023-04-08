@@ -1,0 +1,24 @@
+name: PHPUnit Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install parallel extension
+      run: pecl install parallel
+
+    - name: Install dependencies
+      run: composer install --no-interaction --no-progress --no-suggest
+
+    - name: Run PHPUnit Tests
+      run: ./vendor/bin/phpunit
