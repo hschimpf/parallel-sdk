@@ -168,6 +168,57 @@ foreach (Scheduler::getTasks() as $task) {
 }
 ```
 
+### Remove pending tasks
+You can stop processing queued tasks if your process needs to stop earlier.
+```php
+use HDSSolutions\Console\Parallel\Scheduler;
+use HDSSolutions\Console\Parallel\Task;
+
+// this will remove tasks from the pending queue
+Scheduler::removePendingTasks();
+
+// after cleaning the queue, you should wait for tasks that are currently being processed to finish
+Scheduler::awaitTasksCompletion();
+
+$results = [];
+$unprocessed_tasks = [];
+foreach (Scheduler::getTasks() as $task) {
+    if ($task->wasProcessed()) {
+        $results[] = $task->getResult();
+    } else {
+        // tasks that were not processed, will remain in the Pending state
+        $unprocessed_tasks[] = $task;
+    }
+}
+```
+
+### Stop all processing immediately
+If you need to stop all right away, you can call the `Scheduler::stop()` method. This will stop processing all tasks immediately.
+```php
+use HDSSolutions\Console\Parallel\Scheduler;
+use HDSSolutions\Console\Parallel\Task;
+
+// this will stop processing tasks immediately
+Scheduler::stop();
+
+// in this state, Tasks should have 3 of the following states
+foreach (Scheduler::getTasks() as $task) {
+    switch (true) {
+        case $task->isPending():
+            // Task was never processed
+            break;
+
+        case $task->wasProcessed():
+            // Task was processed by the Worker
+            break;
+
+        case $task->wasCancelled():
+            // Task was cancelled while was being processed
+            break;
+    }
+}
+```
+
 ### ProgressBar
 
 #### Requeriments
