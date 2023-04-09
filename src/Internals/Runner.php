@@ -187,6 +187,14 @@ final class Runner {
         }
 
         $this->send($this->hasPendingTasks(), eater: true);
+
+        if ($this->progressbar_started) {
+            //
+            $this->progressbar_channel->send(new Commands\ProgressBar\StatsReportMessage(
+                worker_id:    '__main__',
+                memory_usage: memory_get_usage(),
+            ));
+        }
     }
 
     protected function await(): bool {

@@ -32,8 +32,8 @@ final class ProgressBarWorker {
 
         // threads memory usage and peak
         $this->threads_memory = [
-            'current' => [ memory_get_usage() ],
-            'peak'    => [ memory_get_usage() ],
+            'current' => [ '__main__' => 0 ],
+            'peak'    => [ '__main__' => 0 ],
         ];
     }
 
@@ -67,13 +67,6 @@ final class ProgressBarWorker {
     }
 
     protected function statsReport(string $worker_id, int $memory_usage): void {
-        // update memory usage for this thread
-        $this->threads_memory['current'][0] = memory_get_usage();
-        // update peak memory usage
-        if ($this->threads_memory['current'][0] > $this->threads_memory['peak'][0]) {
-            $this->threads_memory['peak'][0] = $this->threads_memory['current'][0];
-        }
-
         // save memory usage of thread
         $this->threads_memory['current'][$worker_id] = $memory_usage;
         // update peak memory usage
@@ -87,7 +80,7 @@ final class ProgressBarWorker {
 
     private function getMemoryUsage(): string {
         // main memory used
-        $main = Helper::formatMemory($this->threads_memory['current'][0]);
+        $main = Helper::formatMemory($this->threads_memory['current']['__main__']);
         // total memory used (sum of all threads)
         $total = Helper::formatMemory($total_raw = array_sum($this->threads_memory['current']));
         // average of each thread
