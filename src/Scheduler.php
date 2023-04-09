@@ -7,6 +7,7 @@ use Generator;
 use HDSSolutions\Console\Parallel\Contracts\Task;
 use HDSSolutions\Console\Parallel\Exceptions\ParallelException;
 use HDSSolutions\Console\Parallel\Internals\Commands;
+use parallel;
 use parallel\Channel;
 use parallel\Events\Event;
 use parallel\Runtime;
@@ -30,7 +31,7 @@ final class Scheduler {
         $this->uuid = substr(md5(uniqid(self::class, true)), 0, 16);
         $this->runner = PARALLEL_EXT_LOADED
             // create a Runner instance inside a thread
-            ? (new Runtime(PARALLEL_AUTOLOADER))->run(static function($uuid): void {
+            ? parallel\run(static function($uuid): void {
                 // create runner instance
                 $runner = new Internals\Runner($uuid);
                 // listen for events
