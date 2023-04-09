@@ -197,9 +197,9 @@ final class Runner {
         }
     }
 
-    protected function await(): bool {
+    protected function await(Closure $or_until): bool {
         if (PARALLEL_EXT_LOADED) {
-            return $this->send($this->hasPendingTasks() || $this->hasRunningTasks());
+            return $this->send($or_until() === false && ($this->hasPendingTasks() || $this->hasRunningTasks()));
         }
 
         return true;

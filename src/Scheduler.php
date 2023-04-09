@@ -110,9 +110,13 @@ final class Scheduler {
 
     /**
      * Calling this method will pause execution until all tasks are finished.
+     *
+     * @param  Closure|null  $or_until  Custom validation to stop waiting.
      */
-    public static function awaitTasksCompletion(): bool {
-        $message = new Commands\Runner\WaitTasksCompletionMessage();
+    public static function awaitTasksCompletion(Closure $or_until = null): bool {
+        $message = new Commands\Runner\WaitTasksCompletionMessage(
+            or_until: $or_until ?? static fn() => false,
+        );
 
         if (PARALLEL_EXT_LOADED) {
             $has_pending_tasks = false;

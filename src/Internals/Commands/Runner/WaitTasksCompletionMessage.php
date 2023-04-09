@@ -2,6 +2,7 @@
 
 namespace HDSSolutions\Console\Parallel\Internals\Commands\Runner;
 
+use Closure;
 use HDSSolutions\Console\Parallel\Internals\Commands\ParallelCommandMessage;
 use HDSSolutions\Console\Parallel\Internals\Runner;
 
@@ -10,8 +11,11 @@ use HDSSolutions\Console\Parallel\Internals\Runner;
  */
 final class WaitTasksCompletionMessage extends ParallelCommandMessage {
 
-    public function __construct() {
-        parent::__construct('await');
+    /**
+     * @param  Closure  $or_until
+     */
+    public function __construct(Closure $or_until) {
+        parent::__construct('await', [ $or_until ]);
     }
 
 }
