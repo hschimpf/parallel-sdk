@@ -20,7 +20,7 @@ composer require hds-solutions/parallel-sdk
 ```
 
 ## Usage
-Firstly, you need to set the bootstrap file for parallel. Setting the composer's autoloader is enough. See reference [#1](#references) for more info.
+First, you need to set the bootstrap file for the parallel threads. Setting the composer's autoloader is enough. See reference [#1](#references) for more info.
 ```php
 // check if extension is loaded to allow deploying even in environments where parallel isn't installed
 if (extension_loaded('parallel')) {
@@ -34,6 +34,40 @@ You need to define a `Worker` that will process the tasks. There are two options
 2. Creating a class that extends from `ParallelWorker` and implements the `process()` method.
 
 Then you can schedule tasks to run in parallel using `Scheduler::runTask()` method.
+
+### Bootstrap a Laravel app
+Since ZTS is only available on the cli, you should set the bootstrap file for parallel threads in the `artisan` file.
+```diff
+#!/usr/bin/env php
+<?php
+
+define('LARAVEL_START', microtime(true));
+
+require __DIR__.'/vendor/autoload.php';
+
+$app = require_once __DIR__.'/bootstrap/app.php';
+
++ // check if parallel extension is loaded
++ if (extension_loaded('parallel')) {
++     // and register the bootstrap file for the threads
++     parallel\bootstrap(__DIR__.'/parallel.php');
++ }
+```
+
+Then, in the bootstrap file for the parallel threads, you just need to get an instance of the app and bootstrap the Laravel kernel. This way you will have all Laravel service providers registered.
+`bootstrap/parallel.php`:
+```php
+<?php declare(strict_types=1);
+
+require __DIR__.'/../vendor/autoload.php';
+
+$app = require_once __DIR__.'/app.php';
+
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+
+// bootstrap the Kernel
+$kernel->bootstrap();
+```
 
 ### Anonymous worker
 Defining an anonymous function as a `Worker` to process the tasks.
