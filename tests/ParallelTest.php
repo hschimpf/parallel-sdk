@@ -165,8 +165,8 @@ final class ParallelTest extends TestCase {
             }
         }
 
-        // wait 200ms and stop all
-        usleep(200_000);
+        // wait 500ms and stop all
+        usleep(500_000);
         Scheduler::stop();
 
         $has_pending_tasks = false;
@@ -178,9 +178,9 @@ final class ParallelTest extends TestCase {
             $has_cancelled_tasks = $has_cancelled_tasks || $task->wasCancelled();
         }
 
-        $this->assertTrue($has_pending_tasks);
-        $this->assertTrue($has_processed_tasks);
-        $this->assertTrue($has_cancelled_tasks);
+        $this->assertTrue($has_pending_tasks, 'There are no pending Tasks left');
+        $this->assertTrue($has_processed_tasks, 'There are no processed Tasks');
+        $this->assertTrue($has_cancelled_tasks, 'There are no cancelled Tasks');
 
         Scheduler::removeAllTasks();
     }
