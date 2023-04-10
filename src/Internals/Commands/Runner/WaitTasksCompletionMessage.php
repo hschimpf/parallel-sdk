@@ -12,10 +12,10 @@ use HDSSolutions\Console\Parallel\Internals\Runner;
 final class WaitTasksCompletionMessage extends ParallelCommandMessage {
 
     /**
-     * @param  Closure  $or_until
+     * @param  Closure  $should_keep_waiting
      */
-    public function __construct(Closure $or_until) {
-        parent::__construct('await', [ $or_until ]);
+    public function __construct(Closure $should_keep_waiting) {
+        parent::__construct('await', [ $should_keep_waiting ]);
     }
 
 }

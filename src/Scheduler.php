@@ -3,6 +3,7 @@
 namespace HDSSolutions\Console\Parallel;
 
 use Closure;
+use DateTime;
 use Generator;
 use HDSSolutions\Console\Parallel\Contracts\Task;
 use HDSSolutions\Console\Parallel\Exceptions\ParallelException;
@@ -111,11 +112,12 @@ final class Scheduler {
     /**
      * Calling this method will pause execution until all tasks are finished.
      *
-     * @param  Closure|null  $or_until  Custom validation to stop waiting.
+     * @param  DateTime|null  $wait_until  Should wait until specified DateTime or all tasks finished.
+     * @param  Closure|null  $should_keep_waiting  Custom validation to stop waiting.
      */
-    public static function awaitTasksCompletion(Closure $or_until = null): bool {
+    public static function awaitTasksCompletion(DateTime $wait_until = null, Closure $should_keep_waiting = null): bool {
         $message = new Commands\Runner\WaitTasksCompletionMessage(
-            or_until: $or_until ?? static fn() => false,
+            should_keep_waiting: $should_keep_waiting ?? static fn(): bool => $wait_until === null || new DateTime() < $wait_until,
         );
 
         if (PARALLEL_EXT_LOADED) {
