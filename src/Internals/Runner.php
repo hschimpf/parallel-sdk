@@ -176,6 +176,7 @@ final class Runner {
             worker: $worker->getWorkerClass(),
             steps:  $steps,
         ));
+        $this->progressbar_channel->receive();
 
         return $this->send(true);
     }

@@ -52,6 +52,8 @@ final class ProgressBarWorker {
             // update steps
             $this->progressBar->setMaxSteps($steps);
         }
+
+        $this->release();
     }
 
     protected function progressBarAction(string $action, array $args): void {
