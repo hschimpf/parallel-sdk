@@ -82,7 +82,7 @@ final class Runner {
             identifier:   count($this->tasks),
             worker_class: $worker->getWorkerClass(),
             worker_id:    $this->selected_worker,
-            data:         $data,
+            input:        $data,
         );
         // and put identifier on the pending tasks list
         $this->pending_tasks[] = $task->getIdentifier();
