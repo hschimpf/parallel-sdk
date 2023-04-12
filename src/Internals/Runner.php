@@ -198,9 +198,9 @@ final class Runner {
         }
     }
 
-    protected function await(Closure $should_keep_waiting): bool {
+    protected function await(?int $wait_until = null): bool {
         if (PARALLEL_EXT_LOADED) {
-            return $this->send($should_keep_waiting() && ($this->hasPendingTasks() || $this->hasRunningTasks()));
+            return $this->send(time() <= ($wait_until ?? time()) && ($this->hasPendingTasks() || $this->hasRunningTasks()));
         }
 
         return true;
