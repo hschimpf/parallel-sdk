@@ -37,11 +37,12 @@ final class RegisteredWorker {
      * @param  bool  $with_progress  Flag to enable/disable the ProgressBar
      */
     public function withProgress(bool $with_progress = true, int $steps = 0): void {
+        // enable with progress flag
+        $this->with_progress = $with_progress;
+
         // check if caller is Runner
         $caller = debug_backtrace(!DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1];
         if (($caller['class'] ?? null) === Internals\Runner::class || !PARALLEL_EXT_LOADED) {
-            // enable with progress flag
-            $this->with_progress = $with_progress;
             $this->steps = $steps;
 
             return;
