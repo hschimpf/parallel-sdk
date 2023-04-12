@@ -188,6 +188,14 @@ use HDSSolutions\Console\Parallel\Scheduler;
 Scheduler::awaitTasksCompletion();
 ```
 
+You can also specify a time limit for waiting. The process will pause until all tasks are processed or until max time has been reached, whatever comes first.
+```php
+use HDSSolutions\Console\Parallel\Scheduler;
+
+// Pause until all tasks are processed or until 15 minutes pass
+Scheduler::awaitTasksCompletion(wait_until: new DateInterval('PT15M'));
+```
+
 ### Get processed tasks result
 
 ```php
