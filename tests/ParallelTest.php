@@ -50,7 +50,7 @@ final class ParallelTest extends TestCase {
         $results = [];
         foreach (Scheduler::getTasks() as $task) {
             $this->assertEquals(Worker::class, $task->getWorkerClass());
-            $results[] = $task->getResult();
+            $results[] = $task->getOutput();
         }
         // tasks results must be the same count
         $this->assertCount(count($tasks), $results);
@@ -95,7 +95,7 @@ final class ParallelTest extends TestCase {
         $results = [];
         // fetch processed tasks and store their results
         foreach (Scheduler::getTasks() as $task) {
-            $result = $task->getResult();
+            $result = $task->getOutput();
             echo sprintf("Task result from #%s => %u\n",
                 $worker_class = $task->getWorkerClass(),
                 $result[1]);
@@ -199,7 +199,7 @@ final class ParallelTest extends TestCase {
 
         foreach (Scheduler::getTasks() as $task) {
             // task result must be the same count as sub-tasks
-            $this->assertCount($task->getData()[0], $task->getResult());
+            $this->assertCount($task->getInput()[0], $task->getOutput());
         }
 
         // remove all Tasks

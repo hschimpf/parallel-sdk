@@ -82,7 +82,7 @@ final class Runner {
             identifier:   count($this->tasks),
             worker_class: $worker->getWorkerClass(),
             worker_id:    $this->selected_worker,
-            data:         $data,
+            input:        $data,
         );
         // and put identifier on the pending tasks list
         $this->pending_tasks[] = $task->getIdentifier();
@@ -176,6 +176,7 @@ final class Runner {
             worker: $worker->getWorkerClass(),
             steps:  $steps,
         ));
+        $this->progressbar_channel->receive();
 
         return $this->send(true);
     }
@@ -197,9 +198,9 @@ final class Runner {
         }
     }
 
-    protected function await(Closure $or_until): bool {
+    protected function await(?int $wait_until = null): bool {
         if (PARALLEL_EXT_LOADED) {
-            return $this->send($or_until() === false && ($this->hasPendingTasks() || $this->hasRunningTasks()));
+            return $this->send(time() <= ($wait_until ?? time()) && ($this->hasPendingTasks() || $this->hasRunningTasks()));
         }
 
         return true;

@@ -2,7 +2,8 @@
 
 namespace HDSSolutions\Console\Parallel\Internals\Commands\Runner;
 
-use Closure;
+use DateInterval;
+use DateTime;
 use HDSSolutions\Console\Parallel\Internals\Commands\ParallelCommandMessage;
 use HDSSolutions\Console\Parallel\Internals\Runner;
 
@@ -12,10 +13,10 @@ use HDSSolutions\Console\Parallel\Internals\Runner;
 final class WaitTasksCompletionMessage extends ParallelCommandMessage {
 
     /**
-     * @param  Closure  $or_until
+     * @param  DateInterval|null  $wait_until
      */
-    public function __construct(Closure $or_until) {
-        parent::__construct('await', [ $or_until ]);
+    public function __construct(?DateInterval $wait_until = null) {
+        parent::__construct('await', [ $wait_until === null ? null : (new DateTime())->add($wait_until)->getTimestamp() ]);
     }
 
 }

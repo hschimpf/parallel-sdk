@@ -172,7 +172,7 @@ do {
                 break;
     
             case $task->wasProcessed():
-                $result = $task->getResult();
+                $result = $task->getOutput();
                 break;
         }
     }
@@ -188,6 +188,14 @@ use HDSSolutions\Console\Parallel\Scheduler;
 Scheduler::awaitTasksCompletion();
 ```
 
+You can also specify a time limit for waiting. The process will pause until all tasks are processed or until max time has been reached, whatever comes first.
+```php
+use HDSSolutions\Console\Parallel\Scheduler;
+
+// Pause until all tasks are processed or until 15 minutes pass
+Scheduler::awaitTasksCompletion(wait_until: new DateInterval('PT15M'));
+```
+
 ### Get processed tasks result
 
 ```php
@@ -198,7 +206,7 @@ foreach (Scheduler::getTasks() as $task) {
     // you have access to the Worker class that was used to processed the task
     $worker = $task->getWorkerClass();
     // and the result of the task processed
-    $result = $task->getResult();
+    $result = $task->getOutput();
 }
 ```
 
@@ -218,7 +226,7 @@ $results = [];
 $unprocessed_tasks = [];
 foreach (Scheduler::getTasks() as $task) {
     if ($task->wasProcessed()) {
-        $results[] = $task->getResult();
+        $results[] = $task->getOutput();
     } else {
         // tasks that were not processed, will remain in the Pending state
         $unprocessed_tasks[] = $task;

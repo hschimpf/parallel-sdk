@@ -3,6 +3,7 @@
 namespace HDSSolutions\Console\Parallel;
 
 use Closure;
+use DateInterval;
 use Generator;
 use HDSSolutions\Console\Parallel\Contracts\Task;
 use HDSSolutions\Console\Parallel\Exceptions\ParallelException;
@@ -111,21 +112,19 @@ final class Scheduler {
     /**
      * Calling this method will pause execution until all tasks are finished.
      *
-     * @param  Closure|null  $or_until  Custom validation to stop waiting.
+     * @param  DateInterval|null  $wait_until  Should wait until specified DateInterval or until all tasks finished.
      */
-    public static function awaitTasksCompletion(Closure $or_until = null): bool {
-        $message = new Commands\Runner\WaitTasksCompletionMessage(
-            or_until: $or_until ?? static fn() => false,
-        );
+    public static function awaitTasksCompletion(DateInterval $wait_until = null): bool {
+        $message = new Commands\Runner\WaitTasksCompletionMessage($wait_until);
 
         if (PARALLEL_EXT_LOADED) {
-            $has_pending_tasks = false;
+            $should_keep_waiting = false;
             do {
                 self::instance()->send($message);
-                if ($has_pending_tasks) {
+                if ($should_keep_waiting) {
                     usleep(25_000);
                 }
-            } while ($has_pending_tasks = self::instance()->recv());
+            } while ($should_keep_waiting = self::instance()->recv());
 
             return true;
         }

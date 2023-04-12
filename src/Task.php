@@ -13,21 +13,21 @@ final class Task implements Contracts\Task {
     private int $state = self::STATE_Pending;
 
     /**
-     * @var mixed Result of the task
+     * @var mixed Output of the task
      */
-    private mixed $result = null;
+    private mixed $output = null;
 
     /**
      * @param  int  $identifier  Identifier of the Task
      * @param  string  $worker_class  Worker assigned to process this Task
      * @param  int  $worker_id  Identifier of the registered worker
-     * @param  mixed  $data  Data of the Task
+     * @param  mixed  $input  Input of the Task
      */
     public function __construct(
         private int $identifier,
         private string $worker_class,
         private int $worker_id,
-        private mixed $data = null,
+        private mixed $input = null,
     ) {}
 
     public function getIdentifier(): int {
@@ -42,8 +42,13 @@ final class Task implements Contracts\Task {
         return $this->worker_id;
     }
 
+    /** @inheritdoc */
     public function getData(): mixed {
-        return $this->data;
+        return $this->getInput();
+    }
+
+    public function getInput(): mixed {
+        return $this->input;
     }
 
     /** @internal */
@@ -59,13 +64,18 @@ final class Task implements Contracts\Task {
 
     /** @internal */
     public function setResult(mixed $result): self {
-        $this->result = $result;
+        $this->output = $result;
 
         return $this;
     }
 
+    /** @inheritdoc */
     public function getResult(): mixed {
-        return $this->result;
+        return $this->getOutput();
+    }
+
+    public function getOutput(): mixed {
+        return $this->output;
     }
 
     public function isPending(): bool {

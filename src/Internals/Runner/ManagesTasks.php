@@ -88,9 +88,9 @@ trait ManagesTasks {
                 // build task params
                 $params = $worker instanceof Worker
                     // process task using local Worker
-                    ? [ $registered_worker->getClosure(), ...$task->getData() ]
+                    ? [ $registered_worker->getClosure(), ...$task->getInput() ]
                     // process task using user Worker
-                    : [ ...$task->getData() ];
+                    : [ ...$task->getInput() ];
 
                 // check if worker has ProgressBar enabled
                 if ($registered_worker->hasProgressEnabled()) {
@@ -136,9 +136,9 @@ trait ManagesTasks {
             // build task params
             $params = $worker instanceof Worker
                 // process task using local Worker
-                ? [ $registered_worker->getClosure(), ...$task->getData() ]
+                ? [ $registered_worker->getClosure(), ...$task->getInput() ]
                 // process task using user Worker
-                : [ ...$task->getData() ];
+                : [ ...$task->getInput() ];
 
             // check if worker has ProgressBar enabled
             if ($registered_worker->hasProgressEnabled()) {

@@ -57,9 +57,14 @@ interface Task {
     public function getWorkerId(): int;
 
     /**
-     * @return mixed Data of the Task
+     * @deprecated Replaced with {@see self::getInput()}
      */
     public function getData(): mixed;
+
+    /**
+     * @return mixed Input sent to the Task
+     */
+    public function getInput(): mixed;
 
     /**
      * Returns the current state of the Task
@@ -90,8 +95,13 @@ interface Task {
     public function wasCancelled(): bool;
 
     /**
-     * @return mixed Result of the Task
+     * @deprecated Replaced with {@see self::getOutput()}
      */
     public function getResult(): mixed;
+
+    /**
+     * @return mixed Output of the Task
+     */
+    public function getOutput(): mixed;
 
 }
