@@ -172,7 +172,7 @@ do {
                 break;
     
             case $task->wasProcessed():
-                $result = $task->getResult();
+                $result = $task->getOutput();
                 break;
         }
     }
@@ -206,7 +206,7 @@ foreach (Scheduler::getTasks() as $task) {
     // you have access to the Worker class that was used to processed the task
     $worker = $task->getWorkerClass();
     // and the result of the task processed
-    $result = $task->getResult();
+    $result = $task->getOutput();
 }
 ```
 
@@ -226,7 +226,7 @@ $results = [];
 $unprocessed_tasks = [];
 foreach (Scheduler::getTasks() as $task) {
     if ($task->wasProcessed()) {
-        $results[] = $task->getResult();
+        $results[] = $task->getOutput();
     } else {
         // tasks that were not processed, will remain in the Pending state
         $unprocessed_tasks[] = $task;

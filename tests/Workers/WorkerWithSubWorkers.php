@@ -22,7 +22,7 @@ final class WorkerWithSubWorkers extends ParallelWorker {
 
         $results = [];
         foreach (Scheduler::getTasks() as $task) {
-            $results[] = $task->getResult();
+            $results[] = $task->getOutput();
         }
 
         Scheduler::removeAllTasks();
