@@ -27,6 +27,8 @@ trait HasChannels {
     }
 
     protected function release(): void {
+        if ( !PARALLEL_EXT_LOADED) return;
+
         $this->progressbar_channel->release();
     }
 
