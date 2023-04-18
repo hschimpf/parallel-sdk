@@ -122,6 +122,7 @@ final class ParallelTest extends TestCase {
         }
     }
 
+    /** @depends testThatParallelExtensionIsAvailable */
     public function testThatTasksCanBeRemovedFromQueue(): void {
         Scheduler::using(Workers\LongRunningWorker::class);
 
@@ -155,6 +156,7 @@ final class ParallelTest extends TestCase {
         Scheduler::removeAllTasks();
     }
 
+    /** @depends testThatParallelExtensionIsAvailable */
     public function testThatTasksCanBeCancelled(): void {
         Scheduler::using(Workers\LongRunningWorker::class);
 
@@ -185,6 +187,7 @@ final class ParallelTest extends TestCase {
         Scheduler::removeAllTasks();
     }
 
+    /** @depends testThatParallelExtensionIsAvailable */
     public function testThatChannelsDontOverlap(): void {
         Scheduler::using(Workers\WorkerWithSubWorkers::class);
 
