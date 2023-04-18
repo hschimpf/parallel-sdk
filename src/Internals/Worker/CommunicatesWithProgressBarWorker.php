@@ -56,6 +56,9 @@ trait CommunicatesWithProgressBarWorker {
     }
 
     private function newProgressBarAction(string $action, ...$args): void {
+        // check if progressbar is active
+        if ($this->progressbar_channel === null) return;
+
         $message = new Commands\ProgressBar\ProgressBarActionMessage(
             action: $action,
             args:   $args,

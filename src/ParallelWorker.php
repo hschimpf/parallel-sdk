@@ -32,7 +32,7 @@ abstract class ParallelWorker implements Contracts\ParallelWorker {
     /**
      * @var mixed Worker execution result
      */
-    private mixed $result;
+    private mixed $result = null;
 
     final public function getState(): int {
         return $this->state;
