@@ -1,14 +1,18 @@
 # Parallel SDK
 An implementation of [krakjoe/parallel](https://github.com/krakjoe/parallel) PHP extension.
 
-[![Latest Stable Version](https://img.shields.io/packagist/v/hds-solutions/parallel-sdk?label=stable&color=009664)](https://github.com/hschimpf/parallel-sdk/releases/latest) [![CI](https://img.shields.io/github/actions/workflow/status/hds-solutions/parallel-sdk/ci.yml)](https://github.com/hschimpf/parallel-sdk/actions/workflows/ci.yml) [![License](https://img.shields.io/github/license/hds-solutions/parallel-sdk?color=80B2CB)](https://github.com/hschimpf/parallel-sdk/blob/main/LICENSE) [![Total Downloads](https://img.shields.io/packagist/dt/hds-solutions/parallel-sdk?color=878787)](https://packagist.org/packages/hds-solutions/parallel-sdk) [![PHP Version Require](https://img.shields.io/packagist/dependency-v/hds-solutions/parallel-sdk/php?color=006496)](https://packagist.org/packages/hds-solutions/parallel-sdk)
+[![Latest stable version](https://img.shields.io/packagist/v/hds-solutions/parallel-sdk?style=flat-square&label=latest&color=009664)](https://github.com/hschimpf/parallel-sdk/releases/latest)
+[![License](https://img.shields.io/github/license/hds-solutions/parallel-sdk?style=flat-square&color=80B2CB)](https://github.com/hschimpf/parallel-sdk/blob/main/LICENSE)
+[![Total Downloads](https://img.shields.io/packagist/dt/hds-solutions/parallel-sdk?style=flat-square&color=878787)](https://packagist.org/packages/hds-solutions/parallel-sdk)
+[![Required PHP version](https://img.shields.io/packagist/dependency-v/hds-solutions/parallel-sdk/php?style=flat-square&color=006496&logo=php&logoColor=white)](https://packagist.org/packages/hds-solutions/parallel-sdk)
+[![CI Tests](https://img.shields.io/github/actions/workflow/status/hds-solutions/parallel-sdk/ci.yml?style=flat-square&logo=github&label=tests )](https://github.com/hschimpf/parallel-sdk/actions/workflows/ci.yml)
 
 This library is designed to work even if the `parallel` extension isn't available. In that case, the tasks will be executed un sequential order.
 That allow that your code can be deployed in any environment, and if `parallel` is enabled you will get the advantage of parallel processing.
 
 ## Installation
 ### Dependencies
-You need this dependencies to execute tasks in parallel.
+You need these dependencies to execute tasks in parallel.
 - PHP >= 8.0 with ZTS enabled
 - parallel PECL extension
 
@@ -90,7 +94,7 @@ Scheduler::using(static function(int $number): int {
 ```
 
 ### Worker instance
-Creating a class that extends from `ParallelWorker` class. This could be usefull for complex processes and to maintain your code clean.
+Creating a class that extends from `ParallelWorker` class. This could be useful for complex processes and to maintain your code clean.
 
 `ExampleWorker.php`:
 ```php
@@ -154,7 +158,7 @@ foreach (range(1, 100) as $task_data) {
 ```
 
 ### Check Tasks state
-Every task has an state. There is also helper functions to check current Task state:
+Every task has a state. There is also helper functions to check current Task state:
 ```php
 use HDSSolutions\Console\Parallel\Scheduler;
 use HDSSolutions\Console\Parallel\Task;
@@ -203,7 +207,7 @@ use HDSSolutions\Console\Parallel\Scheduler;
 use HDSSolutions\Console\Parallel\Task;
 
 foreach (Scheduler::getTasks() as $task) {
-    // you have access to the Worker class that was used to processed the task
+    // you have access to the Worker class that was used to process the task
     $worker = $task->getWorkerClass();
     // and the result of the task processed
     $result = $task->getOutput();
@@ -263,7 +267,7 @@ foreach (Scheduler::getTasks() as $task) {
 
 ### ProgressBar
 
-#### Requeriments
+#### Requirements
 - `symfony/console` package
 - Enable a ProgressBar for the worker calling the `withProgress()` method.
 
@@ -316,11 +320,10 @@ final class ExampleWorker extends ParallelWorker {
 2. [Parallel\Runtime::run() Task Characteristics](https://www.php.net/manual/en/parallel-runtime.run.php#refsect1-parallel-runtime.run-closure-characteristics)
 
 # Security Vulnerabilities
-If you encounter any security related issue, feel free to raise a ticket on the issue traker.
+If you encounter any security related issue, feel free to raise a ticket on the issue tracker.
 
 # Contributors
 - [Hermann D. Schimpf](https://hds-solutions.net)
 
 # Licence
 GPL-3.0 Please see [License File](LICENSE) for more information.
-
