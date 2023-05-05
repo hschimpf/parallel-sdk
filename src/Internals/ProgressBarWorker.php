@@ -62,7 +62,7 @@ final class ProgressBarWorker {
 
         if ($action === 'advance') {
             // count processed item
-            $this->items[ time() ] = ($this->items[ time() ] ?? 0) + 1;
+            $this->items[ time() ] = ($this->items[ time() ] ?? 0) + (int) array_shift($args);
             // update ProgressBar items per second report
             $this->progressBar->setMessage($this->getItemsPerSecond(), 'items_per_second');
         }
