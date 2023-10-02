@@ -265,6 +265,15 @@ foreach (Scheduler::getTasks() as $task) {
 }
 ```
 
+### Specifying the No. of CPU Cores
+You can control the maximum percentage or number of CPU cores to use by calling the following methods:
+```php
+use HDSSolutions\Console\Parallel\Scheduler;
+
+Scheduler::setMaxCpuCountUsage(2);        // Use at max two CPU cores
+Scheduler::setMaxCpuPercentageUsage(0.5); // Use at max 50% of the total of CPU cores
+```
+
 ### ProgressBar
 
 #### Requirements
