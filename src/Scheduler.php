@@ -54,6 +54,44 @@ final class Scheduler {
     }
 
     /**
+     * Sets the maximum number of CPU cores to use in parallel
+     *
+     * @param  int  $count  No. of CPU cores. (minimum: 1)
+     *
+     * @return int No. of assigned CPU cores
+     */
+    public static function setMaxCpuCountUsage(int $count): int {
+        $message = new Commands\Runner\SetMaxCpuUsage(max(1, $count));
+
+        if (PARALLEL_EXT_LOADED) {
+            self::instance()->send($message);
+
+            return self::instance()->recv();
+        }
+
+        return self::instance()->runner->processMessage($message);
+    }
+
+    /**
+     * Sets the maximum percentage of cpu cores to use in parallel
+     *
+     * @param  float  $percentage  Percentage of CPU cores. (between 0 and 1.0)
+     *
+     * @return int No. of assigned CPU cores
+     */
+    public static function setMaxCpuPercentageUsage(float $percentage): int {
+        $message = new Commands\Runner\SetMaxCpuUsage(max(0, min($percentage, 1.0)), percentage: true);
+
+        if (PARALLEL_EXT_LOADED) {
+            self::instance()->send($message);
+
+            return self::instance()->recv();
+        }
+
+        return self::instance()->runner->processMessage($message);
+    }
+
+    /**
      * Register a worker class to process tasks
      *
      * @param  string | Closure  $worker  Worker class to be used for processing tasks

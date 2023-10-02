@@ -209,4 +209,25 @@ final class ParallelTest extends TestCase {
         Scheduler::removeAllTasks();
     }
 
+    /**
+     * @depends testThatParallelExtensionIsAvailable
+     */
+    public function testThatCpuUsageCanBeControlled(): void {
+        Scheduler::setMaxCpuCountUsage(1);
+        Scheduler::using(static fn() => usleep(250_000));
+
+        $start = time();
+        foreach (range(1, 5) as $task) {
+            try { Scheduler::runTask($task);
+            } catch (Throwable) {
+                Scheduler::stop();
+            }
+        }
+
+        Scheduler::awaitTasksCompletion();
+        Scheduler::removeAllTasks();
+
+        $this->assertGreaterThanOrEqual(1, time() - $start);
+    }
+
 }
