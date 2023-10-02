@@ -265,6 +265,15 @@ foreach (Scheduler::getTasks() as $task) {
 }
 ```
 
+### Specifying the No. of CPU Cores
+You can control the maximum percentage or number of CPU cores to use by calling the following methods:
+```php
+use HDSSolutions\Console\Parallel\Scheduler;
+
+Scheduler::setMaxCpuCountUsage(2);        // Use at max two CPU cores
+Scheduler::setMaxCpuPercentageUsage(0.5); // Use at max 50% of the total of CPU cores
+```
+
 ### ProgressBar
 
 #### Requirements
@@ -320,10 +329,14 @@ final class ExampleWorker extends ParallelWorker {
 2. [Parallel\Runtime::run() Task Characteristics](https://www.php.net/manual/en/parallel-runtime.run.php#refsect1-parallel-runtime.run-closure-characteristics)
 
 # Security Vulnerabilities
-If you encounter any security related issue, feel free to raise a ticket on the issue tracker.
+If you encounter any security-related issues, please feel free to raise a ticket on the issue tracker.
 
-# Contributors
+# Contributing
+Contributions are welcome! If you find any issues or would like to add new features or improvements, please feel free to submit a pull request.
+
+## Contributors
 - [Hermann D. Schimpf](https://hds-solutions.net)
 
 # Licence
-GPL-3.0 Please see [License File](LICENSE) for more information.
+This library is open-source software licensed under the [MIT License](LICENSE).
+Please see the [License File](LICENSE) for more information.
