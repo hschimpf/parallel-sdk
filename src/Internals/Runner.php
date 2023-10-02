@@ -45,7 +45,7 @@ final class Runner {
     }
 
     protected function setMaxCpuPercentageUsage(float $percentage): int {
-        return $this->send($this->max_cpu_count = cpu_count($percentage));
+        return $this->send($this->max_cpu_count = max(1, cpu_count($percentage)));
     }
 
     protected function getRegisteredWorker(string $worker): RegisteredWorker | false {
