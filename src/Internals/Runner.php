@@ -40,6 +40,14 @@ final class Runner {
         return $this->max_cpu_count ??= (isset($_SERVER['PARALLEL_MAX_COUNT']) ? (int) $_SERVER['PARALLEL_MAX_COUNT'] : cpu_count( (float) ($_SERVER['PARALLEL_MAX_PERCENT'] ?? 1.0) ));
     }
 
+    protected function setMaxCpuCountUsage(int $count): int {
+        return $this->send($this->max_cpu_count = $count);
+    }
+
+    protected function setMaxCpuPercentageUsage(float $percentage): int {
+        return $this->send($this->max_cpu_count = cpu_count($percentage));
+    }
+
     protected function getRegisteredWorker(string $worker): RegisteredWorker | false {
         if ( !array_key_exists($worker, $this->workers_hashmap)) {
             return $this->send(false);
