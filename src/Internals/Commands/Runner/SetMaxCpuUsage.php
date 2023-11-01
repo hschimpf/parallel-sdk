@@ -9,7 +9,7 @@ use HDSSolutions\Console\Parallel\Internals\Commands\ParallelCommandMessage;
  */
 final class SetMaxCpuUsage extends ParallelCommandMessage {
 
-    public function __construct(int $max, bool $percentage = false) {
+    public function __construct(int | float $max, bool $percentage = false) {
         parent::__construct(sprintf('set_max_cpu_%s_usage', $percentage ? 'percentage' : 'count'), [ $max ]);
     }
 
