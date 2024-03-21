@@ -5,7 +5,6 @@ namespace HDSSolutions\Console\Tests;
 use HDSSolutions\Console\Parallel\Internals\Worker;
 use HDSSolutions\Console\Parallel\RegisteredWorker;
 use HDSSolutions\Console\Parallel\Scheduler;
-use HDSSolutions\Console\Tests\Workers;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Throwable;
@@ -15,13 +14,10 @@ final class ParallelTest extends TestCase {
 
     public function testThatParallelExtensionIsAvailable(): void {
         // check that ext-parallel is available
-        $this->assertTrue($loaded = extension_loaded('parallel'), 'Parallel extension isn\'t available');
+        $this->assertTrue(extension_loaded('parallel'), 'Parallel extension isn\'t available');
 
-        // check if extension is available
-        if ($loaded) {
-            // set bootstrap file
-            bootstrap(__DIR__.'/../vendor/autoload.php');
-        }
+        // set bootstrap file
+        bootstrap(__DIR__.'/../vendor/autoload.php');
     }
 
     public function testThatWorkerMustBeDefinedValidates(): void {
