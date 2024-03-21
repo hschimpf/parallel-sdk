@@ -160,7 +160,7 @@ trait ManagesTasks {
             $worker->start(...$params);
 
             // store Worker result
-            $this->running_tasks[] = [ $task_id, $worker->getResult() ];
+            $this->running_tasks[$task_id] = [ $task_id, $worker->getResult() ];
         }
     }
 
