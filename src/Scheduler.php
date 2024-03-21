@@ -42,6 +42,9 @@ final class Scheduler {
             // create runner instance for non-threaded environment
             : new Internals\Runner($this->uuid);
 
+        // wait a small amount of time to allow Runner to start
+        usleep(10_000);
+
         // wait until Runner starts listening for events
         if (PARALLEL_EXT_LOADED) $this->recv();
     }
