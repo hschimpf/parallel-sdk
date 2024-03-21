@@ -192,6 +192,26 @@ final class Scheduler {
     }
 
     /**
+     * Remove a Task from the processing queue.<br/>
+     * **IMPORTANT**: The task will be stopped immediately if it is currently being processed.
+     *
+     * @param  Task  $task Task to be removed
+     *
+     * @return bool
+     */
+    public static function removeTask(Task $task): bool {
+        $message = new Commands\Runner\RemoveTaskMessage($task->getIdentifier());
+
+        if (PARALLEL_EXT_LOADED) {
+            self::instance()->send($message);
+
+            return self::instance()->recv();
+        }
+
+        return self::instance()->runner->processMessage($message);
+    }
+
+    /**
      * Remove all pending tasks from the processing queue.<br>
      * Tasks that weren't processed will remain in the {@see Task::STATE_Pending} state
      */

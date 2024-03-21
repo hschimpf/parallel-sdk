@@ -87,7 +87,7 @@ final class Runner {
 
         // register task
         $this->tasks[] = $task = new Task(
-            identifier:   count($this->tasks),
+            identifier:   $this->task_id++,
             worker_class: $worker->getWorkerClass(),
             worker_id:    $this->selected_worker,
             input:        $data,
@@ -117,6 +117,30 @@ final class Runner {
         $this->tasks_channel->send(false);
 
         return false;
+    }
+
+    protected function removeTask(int $task_id): bool {
+        // remove it from pending tasks
+        $key = array_search($task_id, $this->pending_tasks, true);
+        if ($key !== false) {
+            unset($this->pending_tasks[$key]);
+        }
+
+        // remove it from running tasks
+        $key = array_search($task_id, array_keys($this->running_tasks), true);
+        if ($key !== false) {
+            // stop the task if it is still running
+            try { $this->running_tasks[$key]->cancel();
+            } catch (Throwable) {}
+
+            unset($this->running_tasks[$key]);
+        }
+
+        // remove it from the task list
+        $key = array_search($task_id, array_column($this->tasks, 'identifier'), true);
+        unset($this->tasks[$key]);
+
+        return $this->send(true);
     }
 
     protected function removeAllTasks(): bool {
