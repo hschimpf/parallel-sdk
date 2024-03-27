@@ -85,15 +85,18 @@ final class Runner {
             throw new RuntimeException('No worker is defined');
         }
 
+        // get next task id
+        $task_id = $this->task_id++;
+
         // register task
-        $this->tasks[] = $task = new Task(
-            identifier:   count($this->tasks),
+        $this->tasks[$task_id] = $task = new Task(
+            identifier:   $task_id,
             worker_class: $worker->getWorkerClass(),
             worker_id:    $this->selected_worker,
             input:        $data,
         );
         // and put identifier on the pending tasks list
-        $this->pending_tasks[] = $task->getIdentifier();
+        $this->pending_tasks[$task_id] = $task->getIdentifier();
 
         // if we are on a non-threaded environment,
         if ( !PARALLEL_EXT_LOADED) {
@@ -117,6 +120,31 @@ final class Runner {
         $this->tasks_channel->send(false);
 
         return false;
+    }
+
+    protected function removeTask(int $task_id): bool {
+        // remove it from pending tasks
+        if (array_key_exists($task_id, $this->pending_tasks)) {
+            unset($this->pending_tasks[$task_id]);
+        }
+
+        // remove it from running tasks
+        if (array_key_exists($task_id, $this->running_tasks)) {
+            // stop the task if it is still running
+            try { $this->running_tasks[$task_id]->cancel();
+            } catch (Throwable) {}
+
+            unset($this->running_tasks[$task_id]);
+        }
+
+        // remove it from the task list
+        if (array_key_exists($task_id, $this->tasks)) {
+            unset($this->tasks[$task_id]);
+
+            return $this->send(true);
+        }
+
+        return $this->send(false);
     }
 
     protected function removeAllTasks(): bool {

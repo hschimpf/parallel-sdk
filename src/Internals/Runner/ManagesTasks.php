@@ -15,9 +15,10 @@ use parallel;
 
 trait ManagesTasks {
 
-    /**
-     * @var Task[] Collection of tasks
-     */
+    /** @var int Current Task ID */
+    private int $task_id = 0;
+
+    /** @var Task[] Collection of tasks */
     private array $tasks = [];
 
     /** @var ?Channel Channel to wait for tasks started event */
@@ -44,13 +45,13 @@ trait ManagesTasks {
 
     private function cleanFinishedTasks(): void {
         $finished_tasks = [];
-        foreach ($this->running_tasks as $idx => $future) {
+        foreach ($this->running_tasks as $idx => $running_task) {
             // check if future is already done working
-            if ( !PARALLEL_EXT_LOADED || $future->done()) {
+            if ( !PARALLEL_EXT_LOADED || $running_task->done()) {
                 // store the ProcessedTask
                 try {
                     // get the result of the process
-                    [ $task_id, $result ] = PARALLEL_EXT_LOADED ? $future->value() : $future;
+                    [ $task_id, $result ] = PARALLEL_EXT_LOADED ? $running_task->value() : $running_task;
                     // ignore result if Task was removed, probably through Scheduler::removeTasks()
                     if (!array_key_exists($task_id, $this->tasks)) continue;
                     // store result and update state of the Task
@@ -159,7 +160,7 @@ trait ManagesTasks {
             $worker->start(...$params);
 
             // store Worker result
-            $this->running_tasks[] = [ $task_id, $worker->getResult() ];
+            $this->running_tasks[$task_id] = [ $task_id, $worker->getResult() ];
         }
     }
 

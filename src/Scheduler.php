@@ -42,6 +42,9 @@ final class Scheduler {
             // create runner instance for non-threaded environment
             : new Internals\Runner($this->uuid);
 
+        // wait a small amount of time to allow Runner to start
+        usleep(10_000);
+
         // wait until Runner starts listening for events
         if (PARALLEL_EXT_LOADED) $this->recv();
     }
@@ -189,6 +192,26 @@ final class Scheduler {
         }
 
         yield from self::instance()->runner->processMessage($message);
+    }
+
+    /**
+     * Remove a Task from the processing queue.<br/>
+     * **IMPORTANT**: The task will be stopped immediately if it is currently being processed.
+     *
+     * @param  Task  $task Task to be removed
+     *
+     * @return bool
+     */
+    public static function removeTask(Task $task): bool {
+        $message = new Commands\Runner\RemoveTaskMessage($task->getIdentifier());
+
+        if (PARALLEL_EXT_LOADED) {
+            self::instance()->send($message);
+
+            return self::instance()->recv();
+        }
+
+        return self::instance()->runner->processMessage($message);
     }
 
     /**
