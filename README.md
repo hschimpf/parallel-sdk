@@ -24,7 +24,9 @@ composer require hds-solutions/parallel-sdk
 ```
 
 ## Usage
-First, you need to set the bootstrap file for the parallel threads. Setting the composer's autoloader is enough. See reference [#1](#references) for more info.
+
+You should set the bootstrap file for the parallel threads. Setting the composer's autoloader is enough.
+
 ```php
 // check if extension is loaded to allow deploying even in environments where parallel isn't installed
 if (extension_loaded('parallel')) {
@@ -33,7 +35,12 @@ if (extension_loaded('parallel')) {
 }
 ```
 
-You need to define a `Worker` that will process the tasks. There are two options:
+Behind the scenes, the parallel extension creates an empty Runtime _(thread)_ where the tasks are executed. Every
+Runtime is a clean, empty, isolated environment without any preloaded classes, functions, or autoloaders from the parent
+thread/process. This isolation ensures that each runtime starts with a minimal footprint. See
+references [#1](#references) and [#2](#references) for more info.
+
+Then you define a `Worker` that will process the tasks. There are two options:
 1. Using an anonymous function as a `Worker`.
 2. Creating a class that extends from `ParallelWorker` and implements the `process()` method.
 
@@ -152,7 +159,7 @@ foreach (range(1, 100) as $task_data) {
 
     } catch (Throwable) {
         // if no Worker was defined, a RuntimeException will be thrown
-        // also, Workers have some limitations, see Reference #2 for more info
+        // also, Workers have some limitations, see Reference #3 for more info
     }
 }
 ```
@@ -326,7 +333,8 @@ final class ExampleWorker extends ParallelWorker {
 
 ### References
 1. [parallel\bootstrap()](https://www.php.net/manual/en/parallel.bootstrap.php)
-2. [Parallel\Runtime::run() Task Characteristics](https://www.php.net/manual/en/parallel-runtime.run.php#refsect1-parallel-runtime.run-closure-characteristics)
+2. [parallel\Runtime](https://www.php.net/manual/en/class.parallel-runtime.php)
+3. [Parallel\Runtime::run() Task Characteristics](https://www.php.net/manual/en/parallel-runtime.run.php#refsect1-parallel-runtime.run-closure-characteristics)
 
 # Security Vulnerabilities
 If you encounter any security-related issues, please feel free to raise a ticket on the issue tracker.
