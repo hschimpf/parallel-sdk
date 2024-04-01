@@ -245,7 +245,23 @@ foreach (Scheduler::getTasks() as $task) {
 }
 ```
 
-### Stop all processing immediately
+### Remove a pending/running task
+You can remove a specific task from the processing queue if you need to.
+```php
+use HDSSolutions\Console\Parallel\Scheduler;
+use HDSSolutions\Console\Parallel\Task;
+
+foreach (Scheduler::getTasks() as $task) {
+    // if for some reason you want to remove a task, or just want to free memory when a task finishes
+    if (someValidation($task) || $task->wasProcessed()) {
+        // this will remove the task from the processing queue
+        // IMPORTANT: if the task is already running, it will be stopped
+        Scheduler::removeTask($task);
+    }
+}
+```
+
+### Stop processing all tasks immediately
 If you need to stop all right away, you can call the `Scheduler::stop()` method. This will stop processing all tasks immediately.
 ```php
 use HDSSolutions\Console\Parallel\Scheduler;
