@@ -1,9 +1,10 @@
 # Parallel SDK
 An implementation of [krakjoe/parallel](https://github.com/krakjoe/parallel) PHP extension.
 
-[![Latest stable version](https://img.shields.io/packagist/v/hds-solutions/parallel-sdk?style=flat-square&label=latest&color=009664)](https://github.com/hschimpf/parallel-sdk/releases/latest)
-[![License](https://img.shields.io/github/license/hds-solutions/parallel-sdk?style=flat-square&color=80B2CB)](https://github.com/hschimpf/parallel-sdk/blob/main/LICENSE)
-[![Total Downloads](https://img.shields.io/packagist/dt/hds-solutions/parallel-sdk?style=flat-square&color=878787)](https://packagist.org/packages/hds-solutions/parallel-sdk)
+[![Latest stable version](https://img.shields.io/packagist/v/hds-solutions/parallel-sdk?style=flat-square&label=latest&color=0092CB)](https://github.com/hschimpf/parallel-sdk/releases/latest)
+[![License](https://img.shields.io/github/license/hds-solutions/parallel-sdk?style=flat-square&color=009664)](https://github.com/hschimpf/parallel-sdk/blob/main/LICENSE)
+[![Total Downloads](https://img.shields.io/packagist/dt/hds-solutions/parallel-sdk?style=flat-square&color=747474)](https://packagist.org/packages/hds-solutions/parallel-sdk)
+[![Monthly Downloads](https://img.shields.io/packagist/dm/hds-solutions/parallel-sdk?style=flat-square&color=747474&label)](https://packagist.org/packages/hds-solutions/parallel-sdk)
 [![Required PHP version](https://img.shields.io/packagist/dependency-v/hds-solutions/parallel-sdk/php?style=flat-square&color=006496&logo=php&logoColor=white)](https://packagist.org/packages/hds-solutions/parallel-sdk)
 [![CI Tests](https://img.shields.io/github/actions/workflow/status/hds-solutions/parallel-sdk/ci.yml?style=flat-square&logo=github&label=tests )](https://github.com/hschimpf/parallel-sdk/actions/workflows/ci.yml)
 
