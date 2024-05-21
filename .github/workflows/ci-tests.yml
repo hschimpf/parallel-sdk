@@ -51,3 +51,4 @@ jobs:
 
     - name: Execute tests
       run: ./vendor/bin/phpunit
+      timeout-minutes: 1
