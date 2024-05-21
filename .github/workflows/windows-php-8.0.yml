@@ -1,0 +1,16 @@
+name: CI Tests on Windows with PHP 8.0
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  linux-php-8.0:
+    uses: ./.github/workflows/ci-tests.yml
+    with:
+      os: windows-latest
+      php: 8.0

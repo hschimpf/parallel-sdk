@@ -2,24 +2,20 @@ name: CI Tests
 
 on:
   workflow_call:
-  pull_request:
-  push:
-    branches:
-      - main
-  schedule:
-    - cron: '0 0 * * *'
+    inputs:
+      os:
+        required: true
+        type: string
+      php:
+        required: true
+        type: number
 
 jobs:
   test:
-    name: Run tests on PHP ${{ matrix.php }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.os }}
     concurrency:
-      group: ci-tests-php-${{ matrix.php }}
+      group: ci-tests-${{ inputs.os }}-php-${{ inputs.php }}
       cancel-in-progress: false
-
-    strategy:
-      matrix:
-        php: [8.0, 8.1, 8.2, 8.3]
 
     env:
       extensions: parallel
@@ -32,7 +28,7 @@ jobs:
       id: extensions-cache
       uses: shivammathur/cache-extensions@v1
       with:
-        php-version: ${{ matrix.php }}
+        php-version: ${{ inputs.php }}
         extensions: ${{ env.extensions }}
         key: ${{ env.cache-key }}
 
@@ -43,12 +39,12 @@ jobs:
         key: ${{ steps.extensions-cache.outputs.key }}
         restore-keys: ${{ steps.extensions-cache.outputs.key }}
 
-    - name: Install PHP ${{ matrix.php }} with ZTS
+    - name: Install PHP ${{ inputs.php }} with ZTS
       uses: shivammathur/setup-php@v2
       env:
         phpts: ts
       with:
-        php-version: ${{ matrix.php }}
+        php-version: ${{ inputs.php }}
         extensions: ${{ env.extensions }}
         ini-values: extension=parallel.so, zend_extension=opcache.so, opcache.enable_cli=1, opcache.jit=tracing, opcache.jit_buffer_size=64M
         coverage: none
