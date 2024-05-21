@@ -1,0 +1,60 @@
+name: CI Tests
+
+on:
+  workflow_call:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  test:
+    name: Run tests on PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ci-tests-php-${{ matrix.php }}
+      cancel-in-progress: false
+
+    strategy:
+      matrix:
+        php: [8.0, 8.1, 8.2, 8.3]
+
+    env:
+      extensions: parallel
+      cache-key: extensions-cache-00
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup cache environment
+      id: extensions-cache
+      uses: shivammathur/cache-extensions@v1
+      with:
+        php-version: ${{ matrix.php }}
+        extensions: ${{ env.extensions }}
+        key: ${{ env.cache-key }}
+
+    - name: Cache extensions
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.extensions-cache.outputs.dir }}
+        key: ${{ steps.extensions-cache.outputs.key }}
+        restore-keys: ${{ steps.extensions-cache.outputs.key }}
+
+    - name: Install PHP ${{ matrix.php }} with ZTS
+      uses: shivammathur/setup-php@v2
+      env:
+        phpts: ts
+      with:
+        php-version: ${{ matrix.php }}
+        extensions: ${{ env.extensions }}
+        ini-values: extension=parallel.so, zend_extension=opcache.so, opcache.enable_cli=1, opcache.enable=1, opcache.jit_buffer_size=64M, opcache.jit=1205, opcache.enable_file_override=1, opcache.max_accelerated_files=4000, opcache.validate_timestamps=0, opcache.interned_strings_buffer=8
+        coverage: none
+
+    - name: Install dependencies
+      run: composer install --no-interaction --no-progress --no-suggest
+
+    - name: Execute tests
+      run: ./vendor/bin/phpunit
