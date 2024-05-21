@@ -42,11 +42,10 @@ final class Scheduler {
             // create runner instance for non-threaded environment
             : new Internals\Runner($this->uuid);
 
-        // wait a small amount of time to allow Runner to start
-        usleep(10_000);
-
-        // wait until Runner starts listening for events
-        if (PARALLEL_EXT_LOADED) $this->recv();
+        if (PARALLEL_EXT_LOADED) {
+            // wait until Runner starts listening for events
+            $this->recv();
+        }
     }
 
     /**
@@ -163,7 +162,7 @@ final class Scheduler {
             do {
                 self::instance()->send($message);
                 if ($should_keep_waiting) {
-                    usleep(25_000);
+                    usleep(10_000);
                 }
             } while ($should_keep_waiting = self::instance()->recv());
 

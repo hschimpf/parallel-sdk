@@ -45,8 +45,8 @@ trait HasSharedProgressBar {
 
         // open communication channel with the ProgressBar worker
         do { try { $this->progressbar_channel = TwoWayChannel::open(Internals\ProgressBarWorker::class.'@'.$this->uuid);
-        // wait 25ms if channel does not exist yet and retry
-        } catch (Channel\Error\Existence) { usleep(25_000); }
+        // wait 10ms if channel does not exist yet and retry
+        } catch (Channel\Error\Existence) { usleep(10_000); }
         // try until channel is opened
         } while (($this->progressbar_channel ?? null) === null);
 

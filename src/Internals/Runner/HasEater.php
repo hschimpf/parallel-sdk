@@ -26,8 +26,8 @@ trait HasEater {
             // notify successful start
             $channel->release();
 
-            // every 25ms
-            do { usleep(25_000);
+            // every 10ms
+            do { usleep(10_000);
                 // send an Update message to the Runner instance
                 $runner_listener->send(new Commands\Runner\UpdateMessage());
             // until we receive a stop signal on our channel

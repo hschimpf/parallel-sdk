@@ -36,8 +36,8 @@ trait HasChannels {
         while ($this->eater_channel === null) {
             // open channel to communicate with the Eater instance
             try { $this->eater_channel = TwoWayChannel::open(self::class.'@'.$this->uuid.':eater');
-            // wait 25ms if channel does not exist yet and retry
-            } catch (Channel\Error\Existence) { usleep(25_000); }
+            // wait 10ms if channel does not exist yet and retry
+            } catch (Channel\Error\Existence) { usleep(10_000); }
         }
 
         return $this->eater_channel;

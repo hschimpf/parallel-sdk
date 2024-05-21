@@ -23,8 +23,8 @@ trait HasChannels {
         while ($this->runner_channel === null) {
             // open channel to communicate with the Runner instance
             try { $this->runner_channel = TwoWayChannel::open(Runner::class.'@'.$this->uuid);
-            // wait 25ms if channel does not exist yet and retry
-            } catch (Channel\Error\Existence) { usleep(25_000); }
+            // wait 10ms if channel does not exist yet and retry
+            } catch (Channel\Error\Existence) { usleep(10_000); }
         }
 
         $this->runner_channel->send($value);
@@ -35,15 +35,16 @@ trait HasChannels {
         while ($this->runner_channel === null) {
             // open channel to communicate with the Runner instance
             try { $this->runner_channel = TwoWayChannel::open(Runner::class.'@'.$this->uuid);
-            // wait 25ms if channel does not exist yet and retry
-            } catch (Channel\Error\Existence) { usleep(25_000); }
+            // wait 10ms if channel does not exist yet and retry
+            } catch (Channel\Error\Existence) { usleep(10_000); }
         }
+
         // open channel if not already opened
         while ($this->tasks_channel === null) {
             // open channel to receive the tasks list
             try { $this->tasks_channel = Channel::open(Runner::class.'@'.$this->uuid.':tasks');
-            // wait 25ms if channel does not exist yet and retry
-            } catch (Channel\Error\Existence) { usleep(25_000); }
+            // wait 10ms if channel does not exist yet and retry
+            } catch (Channel\Error\Existence) { usleep(10_000); }
         }
 
         return $from_tasks_channel ? $this->tasks_channel->recv() : $this->runner_channel->receive();
