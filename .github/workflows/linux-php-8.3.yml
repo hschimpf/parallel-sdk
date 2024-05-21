@@ -9,7 +9,7 @@ on:
     - cron: '0 0 * * *'
 
 jobs:
-  linux-php-8.0:
+  linux_php_83:
     uses: ./.github/workflows/ci-tests.yml
     with:
       os: ubuntu-latest
