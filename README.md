@@ -12,11 +12,6 @@ An implementation of [krakjoe/parallel](https://github.com/krakjoe/parallel) PHP
 [![PHP 8.2](https://img.shields.io/github/actions/workflow/status/hds-solutions/parallel-sdk/linux-php-8.2.yml?style=flat-square&logo=github&label=PHP%208.2)](https://github.com/hschimpf/parallel-sdk/actions/workflows/linux-php-8.2.yml)
 [![PHP 8.3](https://img.shields.io/github/actions/workflow/status/hds-solutions/parallel-sdk/linux-php-8.3.yml?style=flat-square&logo=github&label=PHP%208.3)](https://github.com/hschimpf/parallel-sdk/actions/workflows/linux-php-8.3.yml)
 
-[![Windows / PHP 8.0](https://img.shields.io/github/actions/workflow/status/hds-solutions/parallel-sdk/windows-php-8.0.yml?style=flat-square&logo=github&label=Windows%20/%20PHP%208.0)](https://github.com/hschimpf/parallel-sdk/actions/workflows/windows-php-8.0.yml)
-[![PHP 8.1](https://img.shields.io/github/actions/workflow/status/hds-solutions/parallel-sdk/windows-php-8.1.yml?style=flat-square&logo=github&label=PHP%208.1)](https://github.com/hschimpf/parallel-sdk/actions/workflows/windows-php-8.1.yml)
-[![PHP 8.2](https://img.shields.io/github/actions/workflow/status/hds-solutions/parallel-sdk/windows-php-8.2.yml?style=flat-square&logo=github&label=PHP%208.2)](https://github.com/hschimpf/parallel-sdk/actions/workflows/windows-php-8.2.yml)
-[![PHP 8.3](https://img.shields.io/github/actions/workflow/status/hds-solutions/parallel-sdk/windows-php-8.3.yml?style=flat-square&logo=github&label=PHP%208.3)](https://github.com/hschimpf/parallel-sdk/actions/workflows/windows-php-8.3.yml)
-
 This library is designed to work even if the `parallel` extension isn't available. In that case, the tasks will be executed un sequential order.
 That allow that your code can be deployed in any environment, and if `parallel` is enabled you will get the advantage of parallel processing.
 

@@ -12,5 +12,4 @@ jobs:
   linux_php_80:
     uses: ./.github/workflows/ci-tests.yml
     with:
-      os: ubuntu-latest
       php: 8.0

@@ -3,18 +3,15 @@ name: CI Tests
 on:
   workflow_call:
     inputs:
-      os:
-        required: true
-        type: string
       php:
         required: true
         type: number
 
 jobs:
   test:
-    runs-on: ${{ inputs.os }}
+    runs-on: ubuntu-latest
     concurrency:
-      group: ci-tests-${{ inputs.os }}-php-${{ inputs.php }}
+      group: ci-tests-php-${{ inputs.php }}
       cancel-in-progress: false
 
     env:
