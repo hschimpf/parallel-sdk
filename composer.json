@@ -1,6 +1,7 @@
 {
     "name": "hds-solutions/parallel-sdk",
     "description": "SDK to implement parallel php extension",
+    "version": "2.1.4",
     "type": "library",
     "license": "MIT",
     "authors": [
