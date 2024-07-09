@@ -22,15 +22,15 @@ trait HasSharedProgressBar {
     private bool $progressbar_started = false;
 
     /**
-     * @var TwoWayChannel Channel of communication with the ProgressBar worker
+     * @var TwoWayChannel|null Channel of communication with the ProgressBar worker
      */
-    private TwoWayChannel $progressbar_channel;
+    private ?TwoWayChannel $progressbar_channel = null;
 
     private function initProgressBar(): void {
         // init ProgressBar worker, only if not already working
         $this->progressBar ??= PARALLEL_EXT_LOADED
             // create a ProgressBarWorker instance inside a thread
-            ? parallel\run(static function($uuid): void {
+            ? parallel\run(static function(string $uuid): void {
                 // create ProgressBarWorker instance
                 $progressBar = new Internals\ProgressBarWorker($uuid);
                 // listen for events

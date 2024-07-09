@@ -32,7 +32,7 @@ final class Scheduler {
         $this->uuid = substr(md5(uniqid(self::class, true)), 0, 16);
         $this->runner = PARALLEL_EXT_LOADED
             // create a Runner instance inside a thread
-            ? parallel\run(static function($uuid): void {
+            ? parallel\run(static function(string $uuid): void {
                 // create runner instance
                 $runner = new Internals\Runner($uuid);
                 // listen for events
@@ -43,6 +43,10 @@ final class Scheduler {
             : new Internals\Runner($this->uuid);
 
         if (PARALLEL_EXT_LOADED) {
+            // IDK exactly why, maybe a race condition,
+            // but this is needed starting from PHP 8.1+
+            usleep(1_000);
+
             // wait until Runner starts listening for events
             $this->recv();
         }
@@ -162,7 +166,7 @@ final class Scheduler {
             do {
                 self::instance()->send($message);
                 if ($should_keep_waiting) {
-                    usleep(10_000);
+                    usleep(1_000);
                 }
             } while ($should_keep_waiting = self::instance()->recv());
 
