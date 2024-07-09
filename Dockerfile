@@ -1,4 +1,5 @@
-FROM php:8.1-zts
+ARG PHP_VERSION=8.0
+FROM php:${PHP_VERSION}-zts
 
 RUN apt update -qq && \
 	apt install git unzip gdb -y --no-install-recommends
