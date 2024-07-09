@@ -18,8 +18,8 @@ trait CommunicatesWithRunner {
         while ($this->runner_channel === null) {
             // open channel to communicate with the Runner instance
             try { $this->runner_channel = TwoWayChannel::open(Runner::class.'@'.$this->uuid);
-            // wait 10ms if channel does not exist yet and retry
-            } catch (Channel\Error\Existence) { usleep(10_000); }
+            // wait 1ms if channel does not exist yet and retry
+            } catch (Channel\Error\Existence) { usleep(1_000); }
         }
 
         return $this->runner_channel;

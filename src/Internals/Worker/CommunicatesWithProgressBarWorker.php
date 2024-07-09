@@ -25,12 +25,13 @@ trait CommunicatesWithProgressBarWorker {
         // store worker identifier
         $this->identifier = $identifier;
 
-        // open communication channel with the ProgressBar worker
-        do { try { $this->progressbar_channel = TwoWayChannel::open(ProgressBarWorker::class.'@'.$uuid);
-        // wait 10ms if channel does not exist yet and retry
-        } catch (Channel\Error\Existence) { usleep(10_000); }
-        // try until channel is opened
-        } while (($this->progressbar_channel ?? null) === null);
+        // open channel if not already opened
+        while ($this->progressbar_channel === null) {
+            // open channel to communicate with the Runner instance
+            try { $this->progressbar_channel = TwoWayChannel::open(ProgressBarWorker::class.'@'.$uuid);
+            // wait 1ms if channel does not exist yet and retry
+            } catch (Channel\Error\Existence) { usleep(1_000); }
+        }
 
         return true;
     }
