@@ -7,7 +7,10 @@ use HDSSolutions\Console\Parallel\ParallelWorker;
 final class SubWorker extends ParallelWorker {
 
     protected function process(int $seconds = 0): int {
-        usleep(10_000);
+        $microseconds = random_int(10, 100);
+
+        usleep($microseconds * 1000);
+
         return $seconds;
     }
 

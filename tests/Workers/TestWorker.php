@@ -12,11 +12,11 @@ final class TestWorker extends ParallelWorker {
 
     protected function process(int $number = 0): array {
         $microseconds = random_int(10, 100);
-        $this->setMessage(sprintf("TestWorker >> Hello from task #%u, I'll wait %sms", $number, $microseconds));
+        $this->setMessage(sprintf('TestWorker >> Hello from task #%u, I\'ll wait %sms', $number, $microseconds));
 
         usleep($microseconds * 1000);
 
-        $this->setMessage(sprintf('Hey! I finished waiting %sms from task #%u!', $microseconds, $number));
+        $this->setMessage(sprintf('TestWorker >> I finished waiting %sms from task #%u!', $microseconds, $number));
         $this->advance();
 
         return [ $number, $number * array_product($this->multipliers) ];
