@@ -16,7 +16,7 @@ jobs:
 
     env:
       extensions: parallel
-      cache-key: extensions-cache-00
+      cache-key: extensions-cache-01
 
     steps:
     - uses: actions/checkout@v4

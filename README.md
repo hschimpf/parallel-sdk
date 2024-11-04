@@ -19,7 +19,7 @@ That allow that your code can be deployed in any environment, and if `parallel` 
 ### Dependencies
 You need these dependencies to execute tasks in parallel.
 - PHP >= 8.0 with ZTS enabled
-- parallel PECL extension
+- parallel PECL extension _(v1.2.5 or higher)_
 
 Parallel extension documentation can be found on https://php.net/parallel.
 
