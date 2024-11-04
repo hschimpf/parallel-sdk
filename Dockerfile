@@ -8,8 +8,7 @@ RUN apt update -qq && \
 RUN docker-php-ext-install opcache \
  && docker-php-ext-enable opcache
 
-RUN git clone -b florian/fix-316 https://github.com/krakjoe/parallel.git /tmp/parallel \
- && (cd /tmp/parallel && phpize && ./configure && make && make install) \
+RUN pecl install -o -f parallel-1.2.5 \
  && docker-php-ext-enable parallel
 
 COPY --from=composer/composer:latest-bin /composer /usr/bin/composer
