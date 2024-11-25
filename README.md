@@ -58,32 +58,30 @@ Since ZTS is only available on the cli, you should set the bootstrap file for pa
 #!/usr/bin/env php
 <?php
 
++ // check if parallel extension is loaded
++ if (extension_loaded('parallel')) {
++     // and register the bootstrap file for the threads
++     parallel\bootstrap(__DIR__.'/bootstrap/parallel.php');
++ }
+
 define('LARAVEL_START', microtime(true));
 
 require __DIR__.'/vendor/autoload.php';
 
 $app = require_once __DIR__.'/bootstrap/app.php';
-
-+ // check if parallel extension is loaded
-+ if (extension_loaded('parallel')) {
-+     // and register the bootstrap file for the threads
-+     parallel\bootstrap(__DIR__.'/parallel.php');
-+ }
 ```
 
 Then, in the bootstrap file for the parallel threads, you just need to get an instance of the app and bootstrap the Laravel kernel. This way you will have all Laravel service providers registered.
 `bootstrap/parallel.php`:
 ```php
-<?php declare(strict_types=1);
+<?php
 
 require __DIR__.'/../vendor/autoload.php';
 
-$app = require_once __DIR__.'/app.php';
-
-$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
-
-// bootstrap the Kernel
-$kernel->bootstrap();
+// Bootstrap the Console Kernel
+(require_once __DIR__.'/app.php')
+    ->make(Illuminate\Contracts\Console\Kernel::class)
+    ->bootstrap();
 ```
 
 ### Anonymous worker
