@@ -7,7 +7,7 @@ use RuntimeException;
 final class TaskExecutionFailedException extends RuntimeException {
 
     public function __construct(ParallelException $exception) {
-        parent::__construct($exception->getMessage(), previous: $exception);
+        parent::__construct($exception->getMessage());
     }
 
 }
