@@ -2,7 +2,6 @@
 
 namespace HDSSolutions\Console\Parallel\Internals;
 
-use HDSSolutions\Console\Parallel\Internals\Common;
 use Symfony\Component\Console\Helper\Helper;
 
 final class ProgressBarWorker {
