@@ -162,7 +162,7 @@ final class Scheduler {
      *
      * @param  DateInterval|null  $wait_until  Should wait until specified DateInterval or until all tasks finished.
      */
-    public static function awaitTasksCompletion(DateInterval $wait_until = null): bool {
+    public static function awaitTasksCompletion(?DateInterval $wait_until = null): bool {
         $message = new Commands\Runner\WaitTasksCompletionMessage($wait_until);
 
         if (PARALLEL_EXT_LOADED) {
