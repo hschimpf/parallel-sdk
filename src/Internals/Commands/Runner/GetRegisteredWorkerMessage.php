@@ -8,7 +8,7 @@ use HDSSolutions\Console\Parallel\Internals\Runner;
 /**
  * Message sent to {@see Runner} to execute {@see Runner::getRegisteredWorker()} action
  */
-final class GetRegisteredWorkerMessage extends ParallelCommandMessage {
+final readonly class GetRegisteredWorkerMessage extends ParallelCommandMessage {
 
     /**
      * @param  string  $worker

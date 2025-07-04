@@ -7,7 +7,7 @@ use HDSSolutions\Console\Parallel\Internals\Commands\ParallelCommandMessage;
 /**
  * Message sent to {@see ProgressBarWorker} to execute {@see ProgressBarWorker::statsReport()}
  */
-final class StatsReportMessage extends ParallelCommandMessage {
+final readonly class StatsReportMessage extends ParallelCommandMessage {
 
     /**
      * @param  string  $worker_id

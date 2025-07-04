@@ -24,10 +24,10 @@ final class Task implements Contracts\Task {
      * @param  mixed  $input  Input of the Task
      */
     public function __construct(
-        private int $identifier,
-        private string $worker_class,
-        private int $worker_id,
-        private mixed $input = null,
+        private readonly int $identifier,
+        private readonly string $worker_class,
+        private readonly int $worker_id,
+        private readonly mixed $input = null,
     ) {}
 
     public function getIdentifier(): int {

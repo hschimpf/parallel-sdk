@@ -21,8 +21,8 @@ final class TwoWayChannel implements Contracts\TwoWayChannel {
      * Disable constructor
      */
     private function __construct(
-        private string $name,
-        private bool $creator = false,
+        private readonly string $name,
+        private readonly bool $creator = false,
     ) {}
 
     /**

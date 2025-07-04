@@ -21,11 +21,8 @@ final class ProgressBarWorker {
      */
     private array $items = [];
 
-    /**
-     * @param  string  $uuid
-     */
     public function __construct(
-        private string $uuid,
+        private readonly string $uuid,
     ) {
         $this->openChannels();
         $this->createProgressBar();

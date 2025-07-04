@@ -8,7 +8,7 @@ use HDSSolutions\Console\Parallel\Internals\Runner;
 /**
  * Message sent to {@see Runner} to execute {@see Runner::stopRunningTasks()} action
  */
-final class StopRunningTasksMessage extends ParallelCommandMessage {
+final readonly class StopRunningTasksMessage extends ParallelCommandMessage {
 
     public function __construct() {
         parent::__construct('stop_running_tasks', [ true ]);

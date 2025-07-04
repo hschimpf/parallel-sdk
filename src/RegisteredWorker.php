@@ -16,11 +16,11 @@ final class RegisteredWorker {
     private int $steps;
 
     public function __construct(
-        private string $uuid,
-        private int $identifier,
-        private string $worker_class,
-        private ?Closure $closure = null,
-        private array $args = [],
+        private readonly string $uuid,
+        private readonly int $identifier,
+        private readonly string $worker_class,
+        private readonly ?Closure $closure = null,
+        private readonly array $args = [],
     ) {}
 
     public function getIdentifier(): string {

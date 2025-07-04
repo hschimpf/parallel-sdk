@@ -7,7 +7,7 @@ use HDSSolutions\Console\Parallel\ParallelWorker;
 final class AnotherWorker extends ParallelWorker {
 
     public function __construct(
-        private array $multipliers,
+        private readonly array $multipliers,
     ) {}
 
     protected function process(int $number = 0): array {

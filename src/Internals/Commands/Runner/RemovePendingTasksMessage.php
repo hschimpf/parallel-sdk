@@ -8,7 +8,7 @@ use HDSSolutions\Console\Parallel\Internals\Runner;
 /**
  * Message sent to {@see Runner} to execute {@see Runner::removePendingTasks()} action
  */
-final class RemovePendingTasksMessage extends ParallelCommandMessage {
+final readonly class RemovePendingTasksMessage extends ParallelCommandMessage {
 
     public function __construct() {
         parent::__construct('remove_pending_tasks');

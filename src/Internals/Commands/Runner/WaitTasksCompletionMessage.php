@@ -10,7 +10,7 @@ use HDSSolutions\Console\Parallel\Internals\Runner;
 /**
  * Message sent to {@see Runner} to execute {@see Runner::await()} action
  */
-final class WaitTasksCompletionMessage extends ParallelCommandMessage {
+final readonly class WaitTasksCompletionMessage extends ParallelCommandMessage {
 
     /**
      * @param  DateInterval|null  $wait_until

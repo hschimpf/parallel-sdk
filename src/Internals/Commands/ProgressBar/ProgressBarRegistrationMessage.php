@@ -8,7 +8,7 @@ use HDSSolutions\Console\Parallel\Internals\ProgressBarWorker;
 /**
  * Message sent to {@see ProgressBarWorker} to execute {@see ProgressBarWorker::registerWorker()} action
  */
-final class ProgressBarRegistrationMessage extends ParallelCommandMessage {
+final readonly class ProgressBarRegistrationMessage extends ParallelCommandMessage {
 
     /**
      * @param  string  $worker

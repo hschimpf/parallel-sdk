@@ -4,7 +4,7 @@ namespace HDSSolutions\Console\Parallel\Exceptions;
 
 use Throwable;
 
-final class ParallelException {
+final readonly class ParallelException {
 
     private string $message;
 
