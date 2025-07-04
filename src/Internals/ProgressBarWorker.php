@@ -92,7 +92,7 @@ final class ProgressBarWorker {
 
     private function getItemsPerSecond(): string {
         // check for empty list
-        if (empty($this->items)) return '0';
+        if ($this->items === []) return '0';
 
         // keep only last 15s for average
         $this->items = array_slice($this->items, -15, preserve_keys: true);

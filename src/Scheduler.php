@@ -111,7 +111,7 @@ final class Scheduler {
     public static function using(string | Closure $worker, ...$args): RegisteredWorker {
         // check if worker is already registered
         if (is_string($worker) && false !== $registered_worker = self::instance()->getRegisteredWorker($worker)) {
-            if ( !empty($args)) {
+            if ($args !== []) {
                 // args must not be defined if worker already exists
                 throw new WorkerAlreadyDefinedException($worker, with_parameters: true);
             }
@@ -265,7 +265,7 @@ final class Scheduler {
      */
     public static function stop(bool $force = true): void {
         // check if extension isn't loaded and just return
-        if ( !PARALLEL_EXT_LOADED) return;
+        if (! PARALLEL_EXT_LOADED) return;
 
         self::removePendingTasks();
         if ($force) {
@@ -284,7 +284,7 @@ final class Scheduler {
         self::removeAllTasks();
 
         // check if extension isn't loaded and just return
-        if ( !PARALLEL_EXT_LOADED) return;
+        if (! PARALLEL_EXT_LOADED) return;
 
         try {
             // stop Runner instance

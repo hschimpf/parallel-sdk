@@ -24,11 +24,11 @@ final class RegisteredWorker {
     ) {}
 
     public function getIdentifier(): string {
-        if ($this->getClosure() === null) {
-            return $this->getWorkerClass();
+        if ($this->closure === null) {
+            return $this->worker_class;
         }
 
-        return sprintf('%s@%.0u', $this->getWorkerClass(), $this->identifier);
+        return sprintf('%s@%.0u', $this->worker_class, $this->identifier);
     }
 
     /**
@@ -41,7 +41,7 @@ final class RegisteredWorker {
         $this->with_progress = $with_progress;
 
         // check if caller is Runner
-        $caller = debug_backtrace(!DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1] ?? null;
+        $caller = debug_backtrace(! DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1] ?? null;
         if (($caller['class'] ?? null) === Internals\Runner::class || !PARALLEL_EXT_LOADED) {
             $this->steps = $steps;
 
