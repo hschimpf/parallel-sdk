@@ -7,8 +7,6 @@ An implementation of [krakjoe/parallel](https://github.com/krakjoe/parallel) PHP
 [![Monthly Downloads](https://img.shields.io/packagist/dm/hds-solutions/parallel-sdk?style=flat-square&color=747474&label)](https://packagist.org/packages/hds-solutions/parallel-sdk)
 [![Required PHP version](https://img.shields.io/packagist/dependency-v/hds-solutions/parallel-sdk/php?style=flat-square&color=006496&logo=php&logoColor=white)](https://packagist.org/packages/hds-solutions/parallel-sdk)
 
-[![PHP 8.0](https://img.shields.io/github/actions/workflow/status/hds-solutions/parallel-sdk/linux-php-8.0.yml?style=flat-square&logo=github&label=PHP%208.0)](https://github.com/hschimpf/parallel-sdk/actions/workflows/linux-php-8.0.yml)
-[![PHP 8.1](https://img.shields.io/github/actions/workflow/status/hds-solutions/parallel-sdk/linux-php-8.1.yml?style=flat-square&logo=github&label=PHP%208.1)](https://github.com/hschimpf/parallel-sdk/actions/workflows/linux-php-8.1.yml)
 [![PHP 8.2](https://img.shields.io/github/actions/workflow/status/hds-solutions/parallel-sdk/linux-php-8.2.yml?style=flat-square&logo=github&label=PHP%208.2)](https://github.com/hschimpf/parallel-sdk/actions/workflows/linux-php-8.2.yml)
 [![PHP 8.3](https://img.shields.io/github/actions/workflow/status/hds-solutions/parallel-sdk/linux-php-8.3.yml?style=flat-square&logo=github&label=PHP%208.3)](https://github.com/hschimpf/parallel-sdk/actions/workflows/linux-php-8.3.yml)
 [![PHP 8.4](https://img.shields.io/github/actions/workflow/status/hds-solutions/parallel-sdk/linux-php-8.4.yml?style=flat-square&logo=github&label=PHP%208.4)](https://github.com/hschimpf/parallel-sdk/actions/workflows/linux-php-8.4.yml)
@@ -19,7 +17,7 @@ That allow that your code can be deployed in any environment, and if `parallel` 
 ## Installation
 ### Dependencies
 You need these dependencies to execute tasks in parallel.
-- PHP >= 8.0 with ZTS enabled
+- PHP >= 8.2 with ZTS enabled
 - parallel PECL extension _(v1.2.5 or higher)_
 
 Parallel extension documentation can be found on https://php.net/parallel.
