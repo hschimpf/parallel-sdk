@@ -42,7 +42,7 @@ final class RegisteredWorker {
 
         // check if caller is Runner
         $caller = debug_backtrace(! DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1] ?? null;
-        if (($caller['class'] ?? null) === Internals\Runner::class || !PARALLEL_EXT_LOADED) {
+        if (($caller['class'] ?? null) === Internals\Runner::class || ! PARALLEL_EXT_LOADED) {
             $this->steps = $steps;
 
             return;

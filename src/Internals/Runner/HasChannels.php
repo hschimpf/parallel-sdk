@@ -23,7 +23,7 @@ trait HasChannels {
     private Channel $tasks_channel;
 
     private function openChannels(): void {
-        if ( !PARALLEL_EXT_LOADED) return;
+        if (! PARALLEL_EXT_LOADED) return;
 
         // channels to receive and process events
         $this->channel = TwoWayChannel::make(self::class.'@'.$this->uuid);

@@ -100,7 +100,7 @@ final class Runner {
         $this->pending_tasks[$task_id] = $task->getIdentifier();
 
         // if we are on a non-threaded environment,
-        if ( !PARALLEL_EXT_LOADED) {
+        if (! PARALLEL_EXT_LOADED) {
             // just process the Task
             $this->startNextPendingTask();
             // clean finished Task
@@ -111,7 +111,7 @@ final class Runner {
     }
 
     private function getTasks(): array | false {
-        if ( !PARALLEL_EXT_LOADED) {
+        if (! PARALLEL_EXT_LOADED) {
             return $this->tasks;
         }
 
@@ -168,7 +168,7 @@ final class Runner {
         // kill all running threads
         foreach ($this->running_tasks as $task_id => $running_task) {
             // check if future is already done working
-            if ( !PARALLEL_EXT_LOADED || $running_task->done()) {
+            if (! PARALLEL_EXT_LOADED || $running_task->done()) {
                 // store the ProcessedTask
                 try {
                     // get the result of the process

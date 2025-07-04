@@ -12,7 +12,7 @@ trait HasChannels {
     private TwoWayChannel $progressbar_channel;
 
     private function openChannels(): void {
-        if ( !PARALLEL_EXT_LOADED) return;
+        if (! PARALLEL_EXT_LOADED) return;
 
         // channel to receive and process ProgressBar events
         $this->progressbar_channel = TwoWayChannel::make(self::class.'@'.$this->uuid);
@@ -27,7 +27,7 @@ trait HasChannels {
     }
 
     protected function release(): void {
-        if ( !PARALLEL_EXT_LOADED) return;
+        if (! PARALLEL_EXT_LOADED) return;
 
         $this->progressbar_channel->release();
     }
