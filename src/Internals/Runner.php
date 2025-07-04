@@ -41,15 +41,15 @@ final class Runner {
         return $this->max_cpu_count ??= (isset($_SERVER['PARALLEL_MAX_COUNT']) ? (int) $_SERVER['PARALLEL_MAX_COUNT'] : cpu_count( (float) ($_SERVER['PARALLEL_MAX_PERCENT'] ?? 1.0) ));
     }
 
-    protected function setMaxCpuCountUsage(int $count): int {
+    private function setMaxCpuCountUsage(int $count): int {
         return $this->send($this->max_cpu_count = $count);
     }
 
-    protected function setMaxCpuPercentageUsage(float $percentage): int {
+    private function setMaxCpuPercentageUsage(float $percentage): int {
         return $this->send($this->max_cpu_count = max(1, cpu_count($percentage)));
     }
 
-    protected function getRegisteredWorker(string $worker): RegisteredWorker | false {
+    private function getRegisteredWorker(string $worker): RegisteredWorker | false {
         if ( !array_key_exists($worker, $this->workers_hashmap)) {
             return $this->send(false);
         }
@@ -59,7 +59,7 @@ final class Runner {
              ->send($this->getSelectedWorker());
     }
 
-    protected function registerWorker(string | Closure $worker, array $args = []): RegisteredWorker {
+    private function registerWorker(string | Closure $worker, array $args = []): RegisteredWorker {
         // check if worker is already registered
         if (is_string($worker) && array_key_exists($worker, $this->workers_hashmap)) {
             throw new WorkerAlreadyDefinedException($worker);
@@ -80,7 +80,7 @@ final class Runner {
                     ->send($registered_worker);
     }
 
-    protected function queueTask(array $data): int {
+    private function queueTask(array $data): int {
         if (null === $worker = $this->getSelectedWorker()) {
             // reject task scheduling, no worker is defined
             throw new NoWorkerDefinedException;
@@ -110,7 +110,7 @@ final class Runner {
         return $this->send($task->getIdentifier());
     }
 
-    protected function getTasks(): array | false {
+    private function getTasks(): array | false {
         if ( !PARALLEL_EXT_LOADED) {
             return $this->tasks;
         }
@@ -123,7 +123,7 @@ final class Runner {
         return false;
     }
 
-    protected function removeTask(int $task_id): bool {
+    private function removeTask(int $task_id): bool {
         // remove it from pending tasks
         if (array_key_exists($task_id, $this->pending_tasks)) {
             unset($this->pending_tasks[$task_id]);
@@ -148,7 +148,7 @@ final class Runner {
         return $this->send(false);
     }
 
-    protected function removeAllTasks(): bool {
+    private function removeAllTasks(): bool {
         $this->stopRunningTasks();
 
         $this->tasks = [];
@@ -157,14 +157,14 @@ final class Runner {
         return $this->send(true);
     }
 
-    protected function removePendingTasks(): bool {
+    private function removePendingTasks(): bool {
         // clear pending tasks
         $this->pending_tasks = [];
 
         return $this->send(true);
     }
 
-    protected function stopRunningTasks(bool $should_return = false): bool {
+    private function stopRunningTasks(bool $should_return = false): bool {
         // kill all running threads
         foreach ($this->running_tasks as $task_id => $running_task) {
             // check if future is already done working
@@ -197,7 +197,7 @@ final class Runner {
         return true;
     }
 
-    protected function enableProgressBar(string $worker_id, int $steps): bool {
+    private function enableProgressBar(string $worker_id, int $steps): bool {
         if ( !array_key_exists($worker_id, $this->workers_hashmap)) {
             throw new WorkerNotDefinedException;
         }
@@ -218,7 +218,7 @@ final class Runner {
         return $this->send(true);
     }
 
-    protected function update(): void {
+    private function update(): void {
         $this->cleanFinishedTasks();
         while ($this->hasCpuAvailable() && $this->hasPendingTasks()) {
             $this->startNextPendingTask();
@@ -235,7 +235,7 @@ final class Runner {
         }
     }
 
-    protected function await(?int $wait_until = null): bool {
+    private function await(?int $wait_until = null): bool {
         if (PARALLEL_EXT_LOADED) {
             return $this->send(time() <= ($wait_until ?? time()) && ($this->hasPendingTasks() || $this->hasRunningTasks()));
         }

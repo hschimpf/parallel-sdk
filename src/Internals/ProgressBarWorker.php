@@ -37,7 +37,7 @@ final class ProgressBarWorker {
         $this->closeChannels();
     }
 
-    protected function registerWorker(string $worker, int $steps = 0): void {
+    private function registerWorker(string $worker, int $steps = 0): void {
         // check if ProgressBar isn't already started
         if ( !$this->progressBarStarted) {
             // start Worker ProgressBar
@@ -52,7 +52,7 @@ final class ProgressBarWorker {
         $this->release();
     }
 
-    protected function progressBarAction(string $action, array $args): void {
+    private function progressBarAction(string $action, array $args): void {
         // redirect action to ProgressBar instance
         $this->progressBar->$action(...$args);
 
@@ -64,7 +64,7 @@ final class ProgressBarWorker {
         }
     }
 
-    protected function statsReport(string $worker_id, int $memory_usage): void {
+    private function statsReport(string $worker_id, int $memory_usage): void {
         // save memory usage of thread
         $this->threads_memory['current'][$worker_id] = $memory_usage;
         // update peak memory usage
