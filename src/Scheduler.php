@@ -7,12 +7,13 @@ use DateInterval;
 use Generator;
 use HDSSolutions\Console\Parallel\Contracts\Task;
 use HDSSolutions\Console\Parallel\Exceptions\ParallelException;
+use HDSSolutions\Console\Parallel\Exceptions\TaskExecutionFailedException;
+use HDSSolutions\Console\Parallel\Exceptions\WorkerAlreadyDefinedException;
 use HDSSolutions\Console\Parallel\Internals\Commands;
 use parallel;
 use parallel\Channel;
 use parallel\Events\Event;
 use parallel\Runtime;
-use RuntimeException;
 use Throwable;
 
 final class Scheduler {
@@ -104,13 +105,15 @@ final class Scheduler {
      * @param  mixed  ...$args  Arguments passed to Worker constructor
      *
      * @return RegisteredWorker
+     *
+     * @throws WorkerAlreadyDefinedException if a worker is already registered and constructor parameters are specified
      */
     public static function using(string | Closure $worker, ...$args): RegisteredWorker {
         // check if worker is already registered
         if (is_string($worker) && false !== $registered_worker = self::instance()->getRegisteredWorker($worker)) {
             if ( !empty($args)) {
                 // args must not be defined if worker already exists
-                throw new RuntimeException(sprintf('Worker "%s" is already defined, you can\'t specify new constructor parameters!', $worker));
+                throw new WorkerAlreadyDefinedException($worker, with_parameters: true);
             }
 
             return $registered_worker;
@@ -130,7 +133,8 @@ final class Scheduler {
      * @throws Runtime\Error\IllegalFunction if task is a closure created from an internal function
      * @throws Runtime\Error\IllegalInstruction if task contains illegal instructions
      * @throws Runtime\Error\IllegalParameter if task accepts or argv contains illegal variables
-     * @throws Runtime\Error\IllegalReturn | Throwable if task returns illegally
+     * @throws Runtime\Error\IllegalReturn if task returns illegally
+     * @throws TaskExecutionFailedException if task execution failed
      *
      * @see  Runtime::run() for more details
      * @link https://www.php.net/manual/en/parallel.run
@@ -144,7 +148,7 @@ final class Scheduler {
             // get queued task and check if there was an exception thrown
             if (($task_id = self::instance()->recv()) instanceof ParallelException) {
                 // redirect exception
-                throw new RuntimeException($task_id->getMessage());
+                throw new TaskExecutionFailedException($task_id);
             }
 
             return $task_id;

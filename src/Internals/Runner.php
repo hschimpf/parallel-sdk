@@ -3,10 +3,11 @@
 namespace HDSSolutions\Console\Parallel\Internals;
 
 use Closure;
-use HDSSolutions\Console\Parallel\Internals\Common;
+use HDSSolutions\Console\Parallel\Exceptions\NoWorkerDefinedException;
+use HDSSolutions\Console\Parallel\Exceptions\WorkerAlreadyDefinedException;
+use HDSSolutions\Console\Parallel\Exceptions\WorkerNotDefinedException;
 use HDSSolutions\Console\Parallel\RegisteredWorker;
 use HDSSolutions\Console\Parallel\Task;
-use RuntimeException;
 use Throwable;
 
 final class Runner {
@@ -61,7 +62,7 @@ final class Runner {
     protected function registerWorker(string | Closure $worker, array $args = []): RegisteredWorker {
         // check if worker is already registered
         if (is_string($worker) && array_key_exists($worker, $this->workers_hashmap)) {
-            throw new RuntimeException(sprintf('Worker class "%s" is already registered', $worker));
+            throw new WorkerAlreadyDefinedException($worker);
         }
 
         // register worker
@@ -82,7 +83,7 @@ final class Runner {
     protected function queueTask(array $data): int {
         if (null === $worker = $this->getSelectedWorker()) {
             // reject task scheduling, no worker is defined
-            throw new RuntimeException('No worker is defined');
+            throw new NoWorkerDefinedException;
         }
 
         // get next task id
@@ -198,7 +199,7 @@ final class Runner {
 
     protected function enableProgressBar(string $worker_id, int $steps): bool {
         if ( !array_key_exists($worker_id, $this->workers_hashmap)) {
-            throw new RuntimeException('Worker is not defined');
+            throw new WorkerNotDefinedException;
         }
 
         // get registered Worker

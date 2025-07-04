@@ -2,9 +2,10 @@
 
 namespace HDSSolutions\Console\Parallel\Internals\Common;
 
+use HDSSolutions\Console\Parallel\Exceptions\ActionNotImplementedException;
+use HDSSolutions\Console\Parallel\Exceptions\InvalidMessageReceivedException;
 use HDSSolutions\Console\Parallel\Exceptions\ParallelException;
 use HDSSolutions\Console\Parallel\Internals\Commands\ParallelCommandMessage;
-use RuntimeException;
 use parallel\Channel;
 use parallel\Events\Event;
 use Throwable;
@@ -12,7 +13,7 @@ use Throwable;
 trait ListenEventsAndExecuteActions {
 
     /**
-     * Watch for events. This is used only on a multi-threaded environment
+     * Watch for events. This is used only on a multithreaded environment
      */
     final public function listen(): void {
         // notify successful start
@@ -23,7 +24,7 @@ trait ListenEventsAndExecuteActions {
             try {
                 // check if we got a valid message
                 if ( !($message instanceof ParallelCommandMessage)) {
-                    throw new RuntimeException('Invalid message received!');
+                    throw new InvalidMessageReceivedException;
                 }
 
                 // process message
@@ -45,12 +46,12 @@ trait ListenEventsAndExecuteActions {
      * @param  ParallelCommandMessage  $message
      *
      * @return mixed
-     * @throws RuntimeException If the requested action isn't implemented
+     * @throws ActionNotImplementedException If the requested action isn't implemented
      */
     final public function processMessage(ParallelCommandMessage $message): mixed {
         // check if action is implemented
         if ( !method_exists($this, $method = lcfirst(implode('', array_map('ucfirst', explode('_', $message->action)))))) {
-            throw new RuntimeException(sprintf('Action "%s" not yet implemented', $message->action));
+            throw new ActionNotImplementedException($message->action);
         }
 
         // execute action and return the result
