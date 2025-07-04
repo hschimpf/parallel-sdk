@@ -8,7 +8,7 @@ use HDSSolutions\Console\Parallel\Internals\Runner;
 /**
  * Message sent to {@see Runner} to execute {@see Runner::removeTask()} action
  */
-final class RemoveTaskMessage extends ParallelCommandMessage {
+final readonly class RemoveTaskMessage extends ParallelCommandMessage {
 
     /**
      * @param  int  $task_id

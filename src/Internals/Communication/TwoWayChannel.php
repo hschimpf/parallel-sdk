@@ -20,10 +20,7 @@ final class TwoWayChannel implements Contracts\TwoWayChannel {
     /**
      * Disable constructor
      */
-    private function __construct(
-        private string $name,
-        private bool $creator = false,
-    ) {}
+    private function __construct() {}
 
     /**
      * Shall make an unbuffered two-way channel with the given name<br/>
@@ -35,7 +32,7 @@ final class TwoWayChannel implements Contracts\TwoWayChannel {
      * @throws Channel\Error\Existence if channel already exists
      */
     public static function make(string $name): self {
-        $instance = new self($name, true);
+        $instance = new self;
         // create channels
         $instance->input = Channel::make("$name@input");
         $instance->output = Channel::make("$name@output");
@@ -52,7 +49,7 @@ final class TwoWayChannel implements Contracts\TwoWayChannel {
      * @throws Channel\Error\Existence if channel does not exist
      */
     public static function open(string $name): self {
-        $instance = new self($name, false);
+        $instance = new self;
         // create channels
         $instance->input = Channel::open("$name@output");
         $instance->output = Channel::open("$name@input");

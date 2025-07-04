@@ -16,7 +16,7 @@ trait CommunicatesWithProgressBarWorker {
     private TwoWayChannel | Closure | null $progressbar_channel = null;
 
     final public function connectProgressBar(string | Closure $uuid, string $identifier = null): bool {
-        if ( !PARALLEL_EXT_LOADED) {
+        if (! PARALLEL_EXT_LOADED) {
             $this->progressbar_channel = $uuid;
 
             return true;

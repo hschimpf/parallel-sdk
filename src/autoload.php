@@ -2,7 +2,7 @@
 
 require_once __DIR__.'/helpers.php';
 
-spl_autoload_register(static function($class) {
+spl_autoload_register(static function($class): void {
     // build class file path
     $classfile = sprintf('%s/%s.php', __DIR__,
         // replace namespace and invert slashes

@@ -2,7 +2,6 @@
 
 namespace HDSSolutions\Console\Parallel\Internals;
 
-use HDSSolutions\Console\Parallel\Internals\Common;
 use Symfony\Component\Console\Helper\Helper;
 
 final class ProgressBarWorker {
@@ -21,11 +20,8 @@ final class ProgressBarWorker {
      */
     private array $items = [];
 
-    /**
-     * @param  string  $uuid
-     */
     public function __construct(
-        private string $uuid,
+        private readonly string $uuid,
     ) {
         $this->openChannels();
         $this->createProgressBar();
@@ -41,7 +37,7 @@ final class ProgressBarWorker {
         $this->closeChannels();
     }
 
-    protected function registerWorker(string $worker, int $steps = 0): void {
+    private function registerWorker(string $worker, int $steps = 0): void {
         // check if ProgressBar isn't already started
         if ( !$this->progressBarStarted) {
             // start Worker ProgressBar
@@ -56,7 +52,7 @@ final class ProgressBarWorker {
         $this->release();
     }
 
-    protected function progressBarAction(string $action, array $args): void {
+    private function progressBarAction(string $action, array $args): void {
         // redirect action to ProgressBar instance
         $this->progressBar->$action(...$args);
 
@@ -68,7 +64,7 @@ final class ProgressBarWorker {
         }
     }
 
-    protected function statsReport(string $worker_id, int $memory_usage): void {
+    private function statsReport(string $worker_id, int $memory_usage): void {
         // save memory usage of thread
         $this->threads_memory['current'][$worker_id] = $memory_usage;
         // update peak memory usage
@@ -95,7 +91,7 @@ final class ProgressBarWorker {
 
     private function getItemsPerSecond(): string {
         // check for empty list
-        if (empty($this->items)) return '0';
+        if ($this->items === []) return '0';
 
         // keep only last 15s for average
         $this->items = array_slice($this->items, -15, preserve_keys: true);

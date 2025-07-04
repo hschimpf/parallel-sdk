@@ -16,19 +16,19 @@ final class RegisteredWorker {
     private int $steps;
 
     public function __construct(
-        private string $uuid,
-        private int $identifier,
-        private string $worker_class,
-        private ?Closure $closure = null,
-        private array $args = [],
+        private readonly string $uuid,
+        private readonly int $identifier,
+        private readonly string $worker_class,
+        private readonly ?Closure $closure = null,
+        private readonly array $args = [],
     ) {}
 
     public function getIdentifier(): string {
-        if ($this->getClosure() === null) {
-            return $this->getWorkerClass();
+        if ($this->closure === null) {
+            return $this->worker_class;
         }
 
-        return sprintf('%s@%.0u', $this->getWorkerClass(), $this->identifier);
+        return sprintf('%s@%.0u', $this->worker_class, $this->identifier);
     }
 
     /**
@@ -41,8 +41,8 @@ final class RegisteredWorker {
         $this->with_progress = $with_progress;
 
         // check if caller is Runner
-        $caller = debug_backtrace(!DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1] ?? null;
-        if (($caller['class'] ?? null) === Internals\Runner::class || !PARALLEL_EXT_LOADED) {
+        $caller = debug_backtrace(! DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1] ?? null;
+        if (($caller['class'] ?? null) === Internals\Runner::class || ! PARALLEL_EXT_LOADED) {
             $this->steps = $steps;
 
             return;

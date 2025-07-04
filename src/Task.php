@@ -24,10 +24,10 @@ final class Task implements Contracts\Task {
      * @param  mixed  $input  Input of the Task
      */
     public function __construct(
-        private int $identifier,
-        private string $worker_class,
-        private int $worker_id,
-        private mixed $input = null,
+        private readonly int $identifier,
+        private readonly string $worker_class,
+        private readonly int $worker_id,
+        private readonly mixed $input = null,
     ) {}
 
     public function getIdentifier(): int {
@@ -44,7 +44,7 @@ final class Task implements Contracts\Task {
 
     /** @inheritdoc */
     public function getData(): mixed {
-        return $this->getInput();
+        return $this->input;
     }
 
     public function getInput(): mixed {
@@ -71,7 +71,7 @@ final class Task implements Contracts\Task {
 
     /** @inheritdoc */
     public function getResult(): mixed {
-        return $this->getOutput();
+        return $this->output;
     }
 
     public function getOutput(): mixed {
@@ -79,19 +79,19 @@ final class Task implements Contracts\Task {
     }
 
     public function isPending(): bool {
-        return $this->getState() === self::STATE_Pending;
+        return $this->state === self::STATE_Pending;
     }
 
     public function isBeingProcessed(): bool {
-        return $this->getState() === self::STATE_Processing;
+        return $this->state === self::STATE_Processing;
     }
 
     public function wasProcessed(): bool {
-        return $this->getState() === self::STATE_Processed;
+        return $this->state === self::STATE_Processed;
     }
 
     public function wasCancelled(): bool {
-        return $this->getState() === self::STATE_Cancelled;
+        return $this->state === self::STATE_Cancelled;
     }
 
 }

@@ -14,10 +14,10 @@ trait HasEater {
     private Future $eater;
 
     private function startEater(): void {
-        if ( !PARALLEL_EXT_LOADED) return;
+        if (! PARALLEL_EXT_LOADED) return;
 
         // run an eater to keep updating states
-        $this->eater = (new Runtime(PARALLEL_AUTOLOADER))->run(static function(string $uuid): void {
+        $this->eater = (new Runtime(PARALLEL_AUTOLOADER))->run(static function (string $uuid): void {
             // create communication channel
             $channel = TwoWayChannel::make(Runner::class.'@'.$uuid.':eater');
             // open communication channel with the Runner

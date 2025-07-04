@@ -18,13 +18,13 @@ trait HasProgressBar {
     private bool $progressBarStarted = false;
 
     private function createProgressBar(): void {
-        $this->progressBar = new ProgressBar(new ConsoleOutput());
+        $this->progressBar = new ProgressBar(new ConsoleOutput);
 
         // configure ProgressBar settings
-        $this->progressBar->setBarWidth( 80 );
-        $this->progressBar->setRedrawFrequency( 100 );
-        $this->progressBar->minSecondsBetweenRedraws( 0.1 );
-        $this->progressBar->maxSecondsBetweenRedraws( 0.2 );
+        $this->progressBar->setBarWidth(80);
+        $this->progressBar->setRedrawFrequency(100);
+        $this->progressBar->minSecondsBetweenRedraws(0.1);
+        $this->progressBar->maxSecondsBetweenRedraws(0.2);
         $this->progressBar->setFormat(format:
             "%current% of %max%: %message%\n".
             "[%bar%] %percent:3s%%\n".

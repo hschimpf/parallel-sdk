@@ -8,7 +8,7 @@ use HDSSolutions\Console\Parallel\Internals\Runner;
 /**
  * Message sent to {@see Runner} to execute {@see Runner::removeAllTasks()} action
  */
-final class RemoveAllTasksMessage extends ParallelCommandMessage {
+final readonly class RemoveAllTasksMessage extends ParallelCommandMessage {
 
     public function __construct() {
         parent::__construct('remove_all_tasks');

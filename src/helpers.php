@@ -29,7 +29,7 @@ if ( !function_exists('cpu_count')) {
             if (false !== $ps) {
                 $output = stream_get_contents($ps);
                 preg_match('/hw.ncpu: (\d+)/', $output, $matches);
-                if ( !empty($matches)) {
+                if ($matches !== []) {
                     $cpu_count = (int) $matches[1][0];
                 }
 

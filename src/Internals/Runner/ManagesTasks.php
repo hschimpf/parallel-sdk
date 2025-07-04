@@ -47,7 +47,7 @@ trait ManagesTasks {
         $finished_tasks = [];
         foreach ($this->running_tasks as $idx => $running_task) {
             // check if future is already done working
-            if ( !PARALLEL_EXT_LOADED || $running_task->done()) {
+            if (! PARALLEL_EXT_LOADED || $running_task->done()) {
                 // store the ProcessedTask
                 try {
                     // get the result of the process

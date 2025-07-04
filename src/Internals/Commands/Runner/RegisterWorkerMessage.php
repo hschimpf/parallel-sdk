@@ -9,7 +9,7 @@ use HDSSolutions\Console\Parallel\Internals\Runner;
 /**
  * Message sent to {@see Runner} to execute {@see Runner::registerWorker()} action
  */
-final class RegisterWorkerMessage extends ParallelCommandMessage {
+final readonly class RegisterWorkerMessage extends ParallelCommandMessage {
 
     /**
      * @param  string|Closure  $worker

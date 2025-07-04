@@ -41,7 +41,7 @@ trait HasSharedProgressBar {
             : new Internals\ProgressBarWorker($this->uuid);
 
         // check if progressbar is already started, or we are on a non-threaded environment
-        if ($this->progressbar_started || !PARALLEL_EXT_LOADED) return;
+        if ($this->progressbar_started || ! PARALLEL_EXT_LOADED) return;
 
         // open communication channel with the ProgressBar worker
         while ($this->progressbar_channel === null) {
@@ -57,7 +57,7 @@ trait HasSharedProgressBar {
     }
 
     private function stopProgressBar(): void {
-        if ( !PARALLEL_EXT_LOADED || !$this->progressbar_started) return;
+        if (! PARALLEL_EXT_LOADED || ! $this->progressbar_started) return;
 
         // stop ProgressBar worker instance
         $this->progressbar_channel->send(Event\Type::Close);

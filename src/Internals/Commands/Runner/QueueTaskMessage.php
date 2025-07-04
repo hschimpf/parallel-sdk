@@ -8,7 +8,7 @@ use HDSSolutions\Console\Parallel\Internals\Runner;
 /**
  * Message sent to {@see Runner} to execute {@see Runner::queueTask()} action
  */
-final class QueueTaskMessage extends ParallelCommandMessage {
+final readonly class QueueTaskMessage extends ParallelCommandMessage {
 
     /**
      * @param  array  $data

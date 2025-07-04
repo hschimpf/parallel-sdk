@@ -7,7 +7,7 @@ use HDSSolutions\Console\Parallel\ParallelWorker;
 
 final class Worker extends ParallelWorker {
 
-    public function process(Closure $processor = null, ...$data): mixed {
+    public function process(?Closure $processor = null, ...$data): mixed {
         // execute original closure
         return $processor(...$data);
     }
