@@ -44,10 +44,6 @@ final class Scheduler {
             : new Internals\Runner($this->uuid);
 
         if (PARALLEL_EXT_LOADED) {
-            // IDK exactly why, maybe a race condition,
-            // but this is needed starting from PHP 8.1+
-            usleep(1_000);
-
             // wait until Runner starts listening for events
             $this->recv();
         }
@@ -166,13 +162,8 @@ final class Scheduler {
         $message = new Commands\Runner\WaitTasksCompletionMessage($wait_until);
 
         if (PARALLEL_EXT_LOADED) {
-            $should_keep_waiting = false;
-            do {
-                self::instance()->send($message);
-                if ($should_keep_waiting) {
-                    usleep(1_000);
-                }
-            } while ($should_keep_waiting = self::instance()->recv());
+            do { self::instance()->send($message);
+            } while (self::instance()->recv());
 
             return true;
         }
