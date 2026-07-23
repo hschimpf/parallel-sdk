@@ -7,8 +7,8 @@ use HDSSolutions\Console\Parallel\Internals\ConsoleWorker;
 use parallel\Channel;
 use parallel\Events\Event;
 use parallel\Future;
+use parallel\Runtime;
 use Symfony\Component\Console\Output\ConsoleOutput;
-use parallel;
 
 trait HasSharedConsole {
 
@@ -43,8 +43,8 @@ trait HasSharedConsole {
         // already started
         if ($this->console_started) return;
 
-        // create a ConsoleWorker instance inside a thread
-        $this->console ??= parallel\run(static function(string $uuid): void {
+        // create a ConsoleWorker instance inside a dedicated thread
+        $this->console ??= (new Runtime(PARALLEL_AUTOLOADER))->run(static function(string $uuid): void {
             // create ConsoleWorker instance
             $console = new ConsoleWorker($uuid);
             // listen for events
@@ -70,6 +70,9 @@ trait HasSharedConsole {
         $this->console_channel->send(Event\Type::Close);
         // wait until Console worker instance shutdowns
         $this->console_channel->receive();
+
+        $this->console_started = false;
+        $this->console_channel = null;
     }
 
     private function writeOutput(string $message, bool $newline = true): void {
