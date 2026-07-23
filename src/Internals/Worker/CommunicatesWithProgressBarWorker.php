@@ -5,6 +5,7 @@ namespace HDSSolutions\Console\Parallel\Internals\Worker;
 use Closure;
 use HDSSolutions\Console\Parallel\Internals\Communication\TwoWayChannel;
 use HDSSolutions\Console\Parallel\Internals\Commands;
+use HDSSolutions\Console\Parallel\Internals\ConsoleWorker;
 use HDSSolutions\Console\Parallel\Internals\ProgressBarWorker;
 use parallel\Channel;
 
@@ -45,10 +46,18 @@ trait CommunicatesWithProgressBarWorker {
         // on non-threaded environments the Runner provides a closure that writes to ConsoleOutput
         if (! PARALLEL_EXT_LOADED) {
             $this->console_channel = $uuid;
+
+            return true;
         }
 
-        // on threaded environments there is no console coordinator to connect to:
-        // messages are written directly to STDERR when no progress bar is active
+        // open channel if not already opened
+        while ($this->console_channel === null) {
+            // open channel to communicate with the Console worker
+            try { $this->console_channel = TwoWayChannel::open(ConsoleWorker::class.'@'.$uuid); }
+            // wait 1ms if channel does not exist yet and retry
+            catch (Channel\Error\Existence) { usleep(1_000); }
+        }
+
         return true;
     }
 
@@ -103,8 +112,8 @@ trait CommunicatesWithProgressBarWorker {
             return;
         }
 
-        // fallback when no coordinator is available
-        fwrite(STDERR, $message->args[0].($message->args[1] ? PHP_EOL : ''));
+        // fallback when no coordinator is available: write to a fresh stderr stream
+        @file_put_contents('php://stderr', $message->args[0].($message->args[1] ? PHP_EOL : ''));
     }
 
     private function newProgressBarAction(string $action, ...$args): void {

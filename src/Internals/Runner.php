@@ -245,6 +245,7 @@ final class Runner {
     }
 
     public function __destruct() {
+        $this->stopConsole();
         $this->stopProgressBar();
     }
 

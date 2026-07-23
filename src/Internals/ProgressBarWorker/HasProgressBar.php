@@ -3,8 +3,8 @@
 namespace HDSSolutions\Console\Parallel\Internals\ProgressBarWorker;
 
 use Symfony\Component\Console\Helper\ProgressBar;
-use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Output\StreamOutput;
 
 trait HasProgressBar {
 
@@ -24,8 +24,8 @@ trait HasProgressBar {
     private OutputInterface $output;
 
     private function createProgressBar(): void {
-        // use the stderr output stream; ProgressBar uses the same stream internally
-        $this->output = (new ConsoleOutput)->getErrorOutput();
+        // use a fresh stderr stream owned by this thread
+        $this->output = new StreamOutput(fopen('php://stderr', 'w'));
         $this->progressBar = new ProgressBar($this->output);
 
         // configure ProgressBar settings
