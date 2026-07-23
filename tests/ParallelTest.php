@@ -261,6 +261,10 @@ PHP);
 <?php declare(strict_types=1);
 require __AUTOLOAD__;
 
+if (extension_loaded('parallel')) {
+    parallel\bootstrap(__AUTOLOAD__);
+}
+
 use HDSSolutions\Console\Parallel\ParallelWorker;
 use HDSSolutions\Console\Parallel\Scheduler;
 
