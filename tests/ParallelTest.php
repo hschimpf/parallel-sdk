@@ -12,6 +12,16 @@ use function parallel\bootstrap;
 
 final class ParallelTest extends TestCase {
 
+    protected function setUp(): void {
+        parent::setUp();
+        fwrite(STDOUT, sprintf("[%f] TEST START: %s\n", microtime(true), $this->getName()));
+    }
+
+    protected function tearDown(): void {
+        fwrite(STDOUT, sprintf("[%f] TEST END: %s\n", microtime(true), $this->getName()));
+        parent::tearDown();
+    }
+
     public function testThatParallelExtensionIsAvailable(): void {
         // check that ext-parallel is available
         $this->assertTrue(extension_loaded('parallel'), 'Parallel extension isn\'t available');
@@ -285,9 +295,13 @@ PHP;
         $file = tempnam(sys_get_temp_dir(), 'parallel_sdk_test_').'.php';
         file_put_contents($file, str_replace(['__AUTOLOAD__', '__BODY__'], [var_export($autoload, true), $body], $script));
 
+        fwrite(STDOUT, sprintf("[%f] WORKER SCRIPT START: %s\n", microtime(true), $this->getName()));
+
         $output = [];
         $exit = 0;
         exec(sprintf('%s %s 2>&1', escapeshellarg(PHP_BINARY), escapeshellarg($file)), $output, $exit);
+
+        fwrite(STDOUT, sprintf("[%f] WORKER SCRIPT END: %s (exit %d)\n", microtime(true), $this->getName(), $exit));
 
         unlink($file);
 
