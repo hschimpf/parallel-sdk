@@ -4,7 +4,6 @@ namespace HDSSolutions\Console\Parallel\Internals\ProgressBarWorker;
 
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Output\ConsoleOutput;
-use Symfony\Component\Console\Output\OutputInterface;
 
 trait HasProgressBar {
 
@@ -18,15 +17,8 @@ trait HasProgressBar {
      */
     private bool $progressBarStarted = false;
 
-    /**
-     * @var OutputInterface Output stream used for both the ProgressBar and messages
-     */
-    private OutputInterface $output;
-
     private function createProgressBar(): void {
-        // use the stderr output stream; ProgressBar uses the same stream internally
-        $this->output = (new ConsoleOutput)->getErrorOutput();
-        $this->progressBar = new ProgressBar($this->output);
+        $this->progressBar = new ProgressBar(new ConsoleOutput);
 
         // configure ProgressBar settings
         $this->progressBar->setBarWidth(80);
