@@ -226,4 +226,74 @@ final class ParallelTest extends TestCase {
         $this->assertGreaterThanOrEqual(1, time() - $start);
     }
 
+    public function testThatWorkerCanWriteMessagesWithoutProgressBar(): void {
+        $output = $this->runWorkerScript(<<<'PHP'
+Scheduler::using(Writer::class);
+foreach (range(1, 3) as $i) {
+    Scheduler::runTask($i);
+}
+Scheduler::awaitTasksCompletion();
+PHP);
+
+        $this->assertStringContainsString('Starting #1', $output);
+        $this->assertStringContainsString('Starting #2', $output);
+        $this->assertStringContainsString('Starting #3', $output);
+    }
+
+    public function testThatWorkerCanWriteMessagesWithProgressBar(): void {
+        $output = $this->runWorkerScript(<<<'PHP'
+Scheduler::using(Writer::class)->withProgress(steps: 3);
+foreach (range(1, 3) as $i) {
+    Scheduler::runTask($i);
+}
+Scheduler::awaitTasksCompletion();
+PHP);
+
+        $this->assertStringContainsString('Starting #1', $output);
+        $this->assertStringContainsString('Done #3', $output);
+        $this->assertStringContainsString('3 of 3: Task #3', $output);
+    }
+
+    private function runWorkerScript(string $body): string {
+        $autoload = __DIR__.'/../vendor/autoload.php';
+
+        $script = <<<'PHP'
+<?php declare(strict_types=1);
+require __AUTOLOAD__;
+
+if (extension_loaded('parallel')) {
+    parallel\bootstrap(__AUTOLOAD__);
+}
+
+use HDSSolutions\Console\Parallel\ParallelWorker;
+use HDSSolutions\Console\Parallel\Scheduler;
+
+final class Writer extends ParallelWorker {
+    protected function process(int $n = 0): int {
+        $this->setMessage(sprintf('Task #%d', $n));
+        $this->writeln(sprintf('Starting #%d', $n));
+        $this->writeln(sprintf('Done #%d', $n));
+        $this->advance();
+
+        return $n;
+    }
+}
+
+__BODY__
+PHP;
+
+        $file = tempnam(sys_get_temp_dir(), 'parallel_sdk_test_').'.php';
+        file_put_contents($file, str_replace(['__AUTOLOAD__', '__BODY__'], [var_export($autoload, true), $body], $script));
+
+        $output = [];
+        $exit = 0;
+        exec(sprintf('%s %s 2>&1', escapeshellarg(PHP_BINARY), escapeshellarg($file)), $output, $exit);
+
+        unlink($file);
+
+        $this->assertSame(0, $exit, 'Worker script exited with an error');
+
+        return implode("\n", $output);
+    }
+
 }
