@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace HDSSolutions\Console\Parallel\Internals\ProgressBarWorker;
+namespace HDSSolutions\Console\Parallel\Internals\Runner;
 
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Output\OutputInterface;

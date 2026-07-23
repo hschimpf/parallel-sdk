@@ -4,7 +4,7 @@ namespace HDSSolutions\Console\Parallel\Internals\Worker;
 
 use Closure;
 use HDSSolutions\Console\Parallel\Internals\Commands;
-use HDSSolutions\Console\Parallel\Internals\ProgressBarWorker;
+use HDSSolutions\Console\Parallel\Internals\Runner;
 use HDSSolutions\Console\Parallel\Internals\Communication\TwoWayChannel;
 use parallel\Channel;
 
@@ -28,7 +28,7 @@ trait CommunicatesWithProgressBarWorker {
         // open channel if not already opened
         while ($this->progressbar_channel === null) {
             // open channel to communicate with the Runner instance
-            try { $this->progressbar_channel = TwoWayChannel::open(ProgressBarWorker::class.'@'.$uuid);
+            try { $this->progressbar_channel = TwoWayChannel::open(Runner::class.'@'.$uuid);
             // wait 1ms if channel does not exist yet and retry
             } catch (Channel\Error\Existence) { usleep(1_000); }
         }

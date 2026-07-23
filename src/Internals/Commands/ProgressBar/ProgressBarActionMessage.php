@@ -5,7 +5,8 @@ namespace HDSSolutions\Console\Parallel\Internals\Commands\ProgressBar;
 use HDSSolutions\Console\Parallel\Internals\Commands\ParallelCommandMessage;
 
 /**
- * Message sent to {@see ProgressBarWorker} to execute {@see ProgressBarWorker::progressBarAction()}
+ * Message sent to {@see \HDSSolutions\Console\Parallel\Internals\Runner}
+ * to execute {@see \HDSSolutions\Console\Parallel\Internals\Runner\HasSharedProgressBar::progressBarAction()}.
  */
 final readonly class ProgressBarActionMessage extends ParallelCommandMessage {
 

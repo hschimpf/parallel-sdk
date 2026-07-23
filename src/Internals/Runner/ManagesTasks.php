@@ -143,16 +143,13 @@ trait ManagesTasks {
 
             // init progressbar (it also handles console messages from this worker)
             $this->initProgressBar();
-            // connect worker to ProgressBar
-            $worker->connectProgressBar(fn(Commands\ParallelCommandMessage $message) => $this->progressBar->processMessage($message));
+            // connect worker to the Runner's progress bar / console output handler
+            $worker->connectProgressBar(fn(Commands\ParallelCommandMessage $message) => $this->processMessage($message));
 
             // check if worker has ProgressBar enabled
-            if ($registered_worker->hasProgressEnabled()) {
+            if ($registered_worker->hasProgressEnabled() && !$this->progressBarStarted) {
                 // register worker
-                $this->progressBar->processMessage(new Commands\ProgressBar\ProgressBarRegistrationMessage(
-                    worker: $worker_class,
-                    steps:  $registered_worker->getSteps(),
-                ));
+                $this->registerProgressBar($worker_class, $registered_worker->getSteps());
             }
 
             $task->setState(Task::STATE_Processing);

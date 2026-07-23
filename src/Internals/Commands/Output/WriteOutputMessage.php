@@ -5,8 +5,8 @@ namespace HDSSolutions\Console\Parallel\Internals\Commands\Output;
 use HDSSolutions\Console\Parallel\Internals\Commands\ParallelCommandMessage;
 
 /**
- * Message sent to {@see \HDSSolutions\Console\Parallel\Internals\ProgressBarWorker}
- * to execute {@see \HDSSolutions\Console\Parallel\Internals\ProgressBarWorker::writeOutput()}.
+ * Message sent to {@see \HDSSolutions\Console\Parallel\Internals\Runner}
+ * to execute {@see \HDSSolutions\Console\Parallel\Internals\Runner\HasSharedProgressBar::writeOutput()}.
  */
 final readonly class WriteOutputMessage extends ParallelCommandMessage {
 
