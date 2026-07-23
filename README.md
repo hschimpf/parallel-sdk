@@ -376,6 +376,20 @@ final class ExampleWorker extends ParallelWorker {
 }
 ```
 
+#### Example output
+When used together with `withProgress()`, messages are printed between progress-bar redraws instead of being overwritten:
+
+```bash
+ 0 of 10: Starting...
+ [>------------------------------------------------------------------------]   0%
+ elapsed: < 1 sec, remaining: < 1 sec, ?? items/s,memory: ??
+ Processing task #5
+ Finished task #5
+ 1 of 10: Task #5
+ [=====>-------------------------------------------------------------------]  10%
+ elapsed: < 1 sec, remaining: < 1 sec, ~1.00 items/s,memory: ??
+```
+
 ### References
 1. [parallel\bootstrap()](https://www.php.net/manual/en/parallel.bootstrap.php)
 2. [parallel\Runtime](https://www.php.net/manual/en/class.parallel-runtime.php)
