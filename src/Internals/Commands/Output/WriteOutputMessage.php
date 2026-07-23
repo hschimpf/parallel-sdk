@@ -6,9 +6,7 @@ use HDSSolutions\Console\Parallel\Internals\Commands\ParallelCommandMessage;
 
 /**
  * Message sent to {@see \HDSSolutions\Console\Parallel\Internals\ProgressBarWorker}
- * or {@see \HDSSolutions\Console\Parallel\Internals\ConsoleWorker} to execute
- * {@see \HDSSolutions\Console\Parallel\Internals\ProgressBarWorker::writeOutput()}
- * or {@see \HDSSolutions\Console\Parallel\Internals\ConsoleWorker::writeOutput()}.
+ * to execute {@see \HDSSolutions\Console\Parallel\Internals\ProgressBarWorker::writeOutput()}.
  */
 final readonly class WriteOutputMessage extends ParallelCommandMessage {
 

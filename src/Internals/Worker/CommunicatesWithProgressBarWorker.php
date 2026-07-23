@@ -5,7 +5,6 @@ namespace HDSSolutions\Console\Parallel\Internals\Worker;
 use Closure;
 use HDSSolutions\Console\Parallel\Internals\Communication\TwoWayChannel;
 use HDSSolutions\Console\Parallel\Internals\Commands;
-use HDSSolutions\Console\Parallel\Internals\ConsoleWorker;
 use HDSSolutions\Console\Parallel\Internals\ProgressBarWorker;
 use parallel\Channel;
 
@@ -43,20 +42,13 @@ trait CommunicatesWithProgressBarWorker {
     }
 
     final public function connectConsole(string | Closure $uuid, string $identifier = null): bool {
+        // on non-threaded environments the Runner provides a closure that writes to ConsoleOutput
         if (! PARALLEL_EXT_LOADED) {
             $this->console_channel = $uuid;
-
-            return true;
         }
 
-        // open channel if not already opened
-        while ($this->console_channel === null) {
-            // open channel to communicate with the Console output worker instance
-            try { $this->console_channel = TwoWayChannel::open(ConsoleWorker::class.'@'.$uuid);
-            // wait 1ms if channel does not exist yet and retry
-            } catch (Channel\Error\Existence) { usleep(1_000); }
-        }
-
+        // on threaded environments there is no console coordinator to connect to:
+        // messages are written directly to STDERR when no progress bar is active
         return true;
     }
 

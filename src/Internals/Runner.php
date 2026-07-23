@@ -34,7 +34,6 @@ final class Runner {
     protected function afterListening(): void {
         $this->stopEater();
         $this->stopRunningTasks();
-        $this->stopConsole();
         $this->closeChannels();
     }
 
@@ -246,7 +245,6 @@ final class Runner {
     }
 
     public function __destruct() {
-        $this->stopConsole();
         $this->stopProgressBar();
     }
 

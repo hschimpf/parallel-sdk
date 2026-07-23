@@ -74,9 +74,6 @@ trait ManagesTasks {
         $task = $this->tasks[$task_id = array_shift($this->pending_tasks)];
         $task->setState(Task::STATE_Starting);
 
-        // ensure console output worker is available for this task
-        $this->initConsole();
-
         // process task inside a thread (if parallel extension is available)
         if (PARALLEL_EXT_LOADED) {
             // create starter channel to wait threads start event
@@ -101,9 +98,6 @@ trait ManagesTasks {
                     // connect worker to ProgressBar
                     $worker->connectProgressBar($uuid, $GLOBALS['worker_thread_id'] ??= sprintf('%s@%s', $uuid, substr(md5(uniqid($worker_class, true)), 0, 16)));
                 }
-
-                // connect worker to console output
-                $worker->connectConsole($uuid);
 
                 // notify that thread started
                 Channel::open(sprintf('starter@%s', $uuid))->send(true);

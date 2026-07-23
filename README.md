@@ -356,7 +356,7 @@ final class ExampleWorker extends ParallelWorker {
 
 Use `write()` or `writeln()` to emit ad-hoc console messages from a worker. When a ProgressBar is active, the bar is temporarily hidden, the message is printed, and the bar is redrawn below it so the message is not overwritten.
 
-These methods also work for workers that did not enable `withProgress()`; messages are then routed to a dedicated console output handler.
+These methods also work for workers that did not enable `withProgress()`; messages are then written directly to the console.
 
 ```php
 use HDSSolutions\Console\Parallel\ParallelWorker;

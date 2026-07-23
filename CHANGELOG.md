@@ -6,7 +6,6 @@ All notable changes to **parallel-sdk** are documented in this file. The format 
 
 ### Added
 - `ParallelWorker::write()` and `ParallelWorker::writeln()` methods to emit console messages from workers without them being overwritten by the ProgressBar.
-- `ConsoleWorker` thread that owns a fallback `ConsoleOutput` for workers that do not use a ProgressBar.
 - `WriteOutputMessage` command to route `write()`/`writeln()` calls through the existing channel infrastructure.
 
 ### Changed
