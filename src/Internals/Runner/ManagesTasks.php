@@ -79,8 +79,8 @@ trait ManagesTasks {
             // create starter channel to wait threads start event
             $this->starter ??= Channel::make(sprintf('starter@%s', $this->uuid));
 
-            // ensure a Console output worker is available
-            $this->initConsole();
+            // ensure the ProgressBar worker is available (it also handles console messages)
+            $this->initProgressBar();
 
             // parallel available, process task inside a thread
             $this->running_tasks[$task_id] = parallel\run(static function(string $uuid, int $task_id, RegisteredWorker $registered_worker, Task $task): array {
@@ -96,14 +96,8 @@ trait ManagesTasks {
                     // process task using user Worker
                     : [ ...$task->getInput() ];
 
-                // check if worker has ProgressBar enabled
-                if ($registered_worker->hasProgressEnabled()) {
-                    // connect worker to ProgressBar
-                    $worker->connectProgressBar($uuid, $GLOBALS['worker_thread_id'] ??= sprintf('%s@%s', $uuid, substr(md5(uniqid($worker_class, true)), 0, 16)));
-                }
-
-                // connect worker to console output worker
-                $worker->connectConsole($uuid);
+                // connect worker to ProgressBar worker (handles both progress and console messages)
+                $worker->connectProgressBar($uuid, $GLOBALS['worker_thread_id'] ??= sprintf('%s@%s', $uuid, substr(md5(uniqid($worker_class, true)), 0, 16)));
 
                 // notify that thread started
                 Channel::open(sprintf('starter@%s', $uuid))->send(true);
@@ -147,24 +141,19 @@ trait ManagesTasks {
                 // process task using user Worker
                 : [ ...$task->getInput() ];
 
-            // initialize console output (also initializes the local ConsoleOutput on non-threaded environments)
-            $this->initConsole();
+            // init progressbar (handles both progress and console messages)
+            $this->initProgressBar();
+            // connect worker to ProgressBar
+            $worker->connectProgressBar(fn(Commands\ParallelCommandMessage $message) => $this->progressBar->processMessage($message));
 
             // check if worker has ProgressBar enabled
             if ($registered_worker->hasProgressEnabled()) {
-                // init progressbar
-                $this->initProgressBar();
                 // register worker
                 $this->progressBar->processMessage(new Commands\ProgressBar\ProgressBarRegistrationMessage(
                     worker: $worker_class,
                     steps:  $registered_worker->getSteps(),
                 ));
-                // connect worker to ProgressBar
-                $worker->connectProgressBar(fn(Commands\ParallelCommandMessage $message) => $this->progressBar->processMessage($message));
             }
-
-            // connect worker to console output fallback
-            $worker->connectConsole(fn(Commands\Output\WriteOutputMessage $message) => $this->writeOutput(...$message->args));
 
             $task->setState(Task::STATE_Processing);
 

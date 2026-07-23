@@ -14,7 +14,6 @@ final class Runner {
     use Runner\HasChannels;
     use Runner\HasEater;
     use Runner\HasSharedProgressBar;
-    use Runner\HasSharedConsole;
 
     use Runner\ManagesWorkers;
     use Runner\ManagesTasks;
@@ -245,7 +244,6 @@ final class Runner {
     }
 
     public function __destruct() {
-        $this->stopConsole();
         $this->stopProgressBar();
     }
 

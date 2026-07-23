@@ -3,10 +3,9 @@
 namespace HDSSolutions\Console\Parallel\Internals\Worker;
 
 use Closure;
-use HDSSolutions\Console\Parallel\Internals\Communication\TwoWayChannel;
 use HDSSolutions\Console\Parallel\Internals\Commands;
-use HDSSolutions\Console\Parallel\Internals\ConsoleWorker;
 use HDSSolutions\Console\Parallel\Internals\ProgressBarWorker;
+use HDSSolutions\Console\Parallel\Internals\Communication\TwoWayChannel;
 use parallel\Channel;
 
 trait CommunicatesWithProgressBarWorker {
@@ -15,11 +14,6 @@ trait CommunicatesWithProgressBarWorker {
      * @var TwoWayChannel|Closure|null Channel of communication between Task and ProgressBar
      */
     private TwoWayChannel | Closure | null $progressbar_channel = null;
-
-    /**
-     * @var TwoWayChannel|Closure|null Channel of communication between Task and Console output
-     */
-    private TwoWayChannel | Closure | null $console_channel = null;
 
     final public function connectProgressBar(string | Closure $uuid, string $identifier = null): bool {
         if (! PARALLEL_EXT_LOADED) {
@@ -37,25 +31,6 @@ trait CommunicatesWithProgressBarWorker {
             try { $this->progressbar_channel = TwoWayChannel::open(ProgressBarWorker::class.'@'.$uuid);
             // wait 1ms if channel does not exist yet and retry
             } catch (Channel\Error\Existence) { usleep(1_000); }
-        }
-
-        return true;
-    }
-
-    final public function connectConsole(string | Closure $uuid, string $identifier = null): bool {
-        // on non-threaded environments the Runner provides a closure that writes to ConsoleOutput
-        if (! PARALLEL_EXT_LOADED) {
-            $this->console_channel = $uuid;
-
-            return true;
-        }
-
-        // open channel if not already opened
-        while ($this->console_channel === null) {
-            // open channel to communicate with the Console worker
-            try { $this->console_channel = TwoWayChannel::open(ConsoleWorker::class.'@'.$uuid); }
-            // wait 1ms if channel does not exist yet and retry
-            catch (Channel\Error\Existence) { usleep(1_000); }
         }
 
         return true;
@@ -90,23 +65,11 @@ trait CommunicatesWithProgressBarWorker {
     }
 
     private function sendOutputMessage(Commands\Output\WriteOutputMessage $message): void {
-        // if a progress bar is active, route the message through the ProgressBar worker
         if ($this->progressbar_channel !== null) {
             if (PARALLEL_EXT_LOADED) {
                 $this->progressbar_channel->send($message);
             } else {
                 ($this->progressbar_channel)($message);
-            }
-
-            return;
-        }
-
-        // if a console output channel is connected, route the message there
-        if ($this->console_channel !== null) {
-            if (PARALLEL_EXT_LOADED) {
-                $this->console_channel->send($message);
-            } else {
-                ($this->console_channel)($message);
             }
 
             return;
@@ -132,13 +95,11 @@ trait CommunicatesWithProgressBarWorker {
                 worker_id:    $this->identifier,
                 memory_usage: memory_get_usage(),
             ));
-            // request ProgressBar action
             $this->progressbar_channel->send($message);
 
             return;
         }
 
-        // redirect action to ProgressBar executor
         ($this->progressbar_channel)($message);
     }
 

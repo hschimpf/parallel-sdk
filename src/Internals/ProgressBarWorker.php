@@ -53,6 +53,9 @@ final class ProgressBarWorker {
     }
 
     private function progressBarAction(string $action, array $args): void {
+        // ignore progress actions until the bar is actually started
+        if ( ! $this->progressBarStarted) return;
+
         // redirect action to ProgressBar instance
         $this->progressBar->$action(...$args);
 
