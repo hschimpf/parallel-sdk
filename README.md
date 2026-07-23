@@ -321,6 +321,8 @@ Available methods are:
 - `setProgress(int $step)`
 - `display()`
 - `clear()`
+- `write(string $message, bool $newline = false)`
+- `writeln(string $message)`
 
 ```php
 use HDSSolutions\Console\Parallel\ParallelWorker;
@@ -332,6 +334,7 @@ final class ExampleWorker extends ParallelWorker {
         $microseconds = random_int(100, 500);
         $this->setMessage(sprintf("ExampleWorker >> Hello from task #%u, I'll wait %sms", $number, $microseconds));
         usleep($microseconds * 1000);
+        $this->writeln(sprintf("ExampleWorker >> Finished task #%u", $number));
         $this->advance();
         // end example process
 
@@ -347,6 +350,30 @@ final class ExampleWorker extends ParallelWorker {
  [===========================================>------------------------------------]  53%
  elapsed: 2 secs, remaining: 2 secs, ~13.50 items/s
  memory: 562 KiB, threads: 12x ~474 KiB, Σ 5,6 MiB ↑ 5,6 MiB
+```
+
+#### Console messages
+
+Use `write()` or `writeln()` to emit ad-hoc console messages from a worker. When a ProgressBar is active, the bar is temporarily hidden, the message is printed, and the bar is redrawn below it so the message is not overwritten.
+
+These methods also work for workers that did not enable `withProgress()`; messages are then routed to a dedicated console output handler.
+
+```php
+use HDSSolutions\Console\Parallel\ParallelWorker;
+
+final class ExampleWorker extends ParallelWorker {
+
+    protected function process(int $number = 0): int {
+        $this->writeln(sprintf("Processing task #%u", $number));
+
+        // ... do work ...
+
+        $this->writeln(sprintf("Finished task #%u", $number));
+
+        return $number;
+    }
+
+}
 ```
 
 ### References

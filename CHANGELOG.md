@@ -2,6 +2,16 @@
 
 All notable changes to **parallel-sdk** are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Added
+- `ParallelWorker::write()` and `ParallelWorker::writeln()` methods to emit console messages from workers without them being overwritten by the ProgressBar.
+- `ConsoleWorker` thread that owns a fallback `ConsoleOutput` for workers that do not use a ProgressBar.
+- `WriteOutputMessage` command to route `write()`/`writeln()` calls through the existing channel infrastructure.
+
+### Changed
+- `ProgressBarWorker` now uses a shared `stderr` `OutputInterface` for both the ProgressBar and messages, so `clear()`/`write()`/`display()` work correctly together.
+
 ## `3.0.0` – 2025-07-04
 
 ### Added

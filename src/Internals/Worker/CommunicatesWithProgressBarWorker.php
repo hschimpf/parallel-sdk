@@ -5,6 +5,7 @@ namespace HDSSolutions\Console\Parallel\Internals\Worker;
 use Closure;
 use HDSSolutions\Console\Parallel\Internals\Communication\TwoWayChannel;
 use HDSSolutions\Console\Parallel\Internals\Commands;
+use HDSSolutions\Console\Parallel\Internals\ConsoleWorker;
 use HDSSolutions\Console\Parallel\Internals\ProgressBarWorker;
 use parallel\Channel;
 
@@ -14,6 +15,11 @@ trait CommunicatesWithProgressBarWorker {
      * @var TwoWayChannel|Closure|null Channel of communication between Task and ProgressBar
      */
     private TwoWayChannel | Closure | null $progressbar_channel = null;
+
+    /**
+     * @var TwoWayChannel|Closure|null Channel of communication between Task and Console output
+     */
+    private TwoWayChannel | Closure | null $console_channel = null;
 
     final public function connectProgressBar(string | Closure $uuid, string $identifier = null): bool {
         if (! PARALLEL_EXT_LOADED) {
@@ -29,6 +35,24 @@ trait CommunicatesWithProgressBarWorker {
         while ($this->progressbar_channel === null) {
             // open channel to communicate with the Runner instance
             try { $this->progressbar_channel = TwoWayChannel::open(ProgressBarWorker::class.'@'.$uuid);
+            // wait 1ms if channel does not exist yet and retry
+            } catch (Channel\Error\Existence) { usleep(1_000); }
+        }
+
+        return true;
+    }
+
+    final public function connectConsole(string | Closure $uuid, string $identifier = null): bool {
+        if (! PARALLEL_EXT_LOADED) {
+            $this->console_channel = $uuid;
+
+            return true;
+        }
+
+        // open channel if not already opened
+        while ($this->console_channel === null) {
+            // open channel to communicate with the Console output worker instance
+            try { $this->console_channel = TwoWayChannel::open(ConsoleWorker::class.'@'.$uuid);
             // wait 1ms if channel does not exist yet and retry
             } catch (Channel\Error\Existence) { usleep(1_000); }
         }
@@ -54,6 +78,41 @@ trait CommunicatesWithProgressBarWorker {
 
     final public function clear(): void {
         $this->newProgressBarAction(__FUNCTION__);
+    }
+
+    final public function write(string $message, bool $newline = false): void {
+        $this->sendOutputMessage(new Commands\Output\WriteOutputMessage($message, $newline));
+    }
+
+    final public function writeln(string $message): void {
+        $this->write($message, true);
+    }
+
+    private function sendOutputMessage(Commands\Output\WriteOutputMessage $message): void {
+        // if a progress bar is active, route the message through the ProgressBar worker
+        if ($this->progressbar_channel !== null) {
+            if (PARALLEL_EXT_LOADED) {
+                $this->progressbar_channel->send($message);
+            } else {
+                ($this->progressbar_channel)($message);
+            }
+
+            return;
+        }
+
+        // if a console output channel is connected, route the message there
+        if ($this->console_channel !== null) {
+            if (PARALLEL_EXT_LOADED) {
+                $this->console_channel->send($message);
+            } else {
+                ($this->console_channel)($message);
+            }
+
+            return;
+        }
+
+        // fallback when no coordinator is available
+        fwrite(STDERR, $message->args[0].($message->args[1] ? PHP_EOL : ''));
     }
 
     private function newProgressBarAction(string $action, ...$args): void {

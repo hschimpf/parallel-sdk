@@ -64,6 +64,13 @@ final class ProgressBarWorker {
         }
     }
 
+    private function writeOutput(string $message, bool $newline = true): void {
+        // clear the bar, write the message, then redraw the bar below it
+        $this->progressBar->clear();
+        $this->output->write($message, $newline);
+        $this->progressBar->display();
+    }
+
     private function statsReport(string $worker_id, int $memory_usage): void {
         // save memory usage of thread
         $this->threads_memory['current'][$worker_id] = $memory_usage;
