@@ -3,6 +3,7 @@
 namespace HDSSolutions\Console\Parallel\Internals;
 
 use Symfony\Component\Console\Helper\Helper;
+use Symfony\Component\Console\Output\ConsoleOutput;
 
 final class ProgressBarWorker {
     use ProgressBarWorker\HasChannels;
@@ -62,6 +63,13 @@ final class ProgressBarWorker {
             // update ProgressBar items per second report
             $this->progressBar->setMessage($this->getItemsPerSecond(), 'items_per_second');
         }
+    }
+
+    private function writeOutput(string $message, bool $newline = true): void {
+        // clear the bar, write the message, then redraw the bar below it
+        $this->progressBar->clear();
+        (new ConsoleOutput)->getErrorOutput()->write($message, $newline);
+        $this->progressBar->display();
     }
 
     private function statsReport(string $worker_id, int $memory_usage): void {
