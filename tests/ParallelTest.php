@@ -12,6 +12,13 @@ use function parallel\bootstrap;
 
 final class ParallelTest extends TestCase {
 
+    public static function setUpBeforeClass(): void {
+        // The parallel extension is not compatible with OPcache JIT in threaded environments.
+        if (extension_loaded('parallel')) {
+            ini_set('opcache.jit', 'disable');
+        }
+    }
+
     public function testThatParallelExtensionIsAvailable(): void {
         // check that ext-parallel is available
         $this->assertTrue(extension_loaded('parallel'), 'Parallel extension isn\'t available');
