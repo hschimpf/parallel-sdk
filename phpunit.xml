@@ -20,6 +20,7 @@
     </coverage>
 
     <php>
-
+        <!-- parallel is not compatible with OPcache JIT in threaded environments -->
+        <ini name="opcache.jit" value="disable"/>
     </php>
 </phpunit>
