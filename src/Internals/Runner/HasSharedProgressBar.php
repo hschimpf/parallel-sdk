@@ -34,7 +34,10 @@ trait HasSharedProgressBar {
     }
 
     private function stopProgressBar(): void {
-        // ProgressBar is owned by this thread; no separate worker to stop
+        // finish the ProgressBar if it was started so the terminal state is clean
+        if ($this->progressbar_initialized && $this->progressBarStarted) {
+            $this->progressBar->finish();
+        }
     }
 
     private function registerProgressBar(string $worker, int $steps = 0): bool {

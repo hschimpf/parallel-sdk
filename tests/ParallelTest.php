@@ -13,16 +13,6 @@ use function parallel\bootstrap;
 
 final class ParallelTest extends TestCase {
 
-    protected function setUp(): void {
-        parent::setUp();
-        fwrite(STDOUT, sprintf("[%f] TEST START: %s\n", microtime(true), $this->getName()));
-    }
-
-    protected function tearDown(): void {
-        fwrite(STDOUT, sprintf("[%f] TEST END: %s\n", microtime(true), $this->getName()));
-        parent::tearDown();
-    }
-
     public function testThatParallelExtensionIsAvailable(): void {
         // check that ext-parallel is available
         $this->assertTrue(extension_loaded('parallel'), 'Parallel extension isn\'t available');
@@ -264,6 +254,20 @@ PHP);
         $this->assertStringContainsString('Done #3', $output);
         $this->assertStringContainsString('3 of 3:', $output);
         $this->assertStringContainsString('Task #', $output);
+
+        $start1 = strpos($output, 'Starting #1');
+        $done1 = strpos($output, 'Done #1');
+        $done3 = strpos($output, 'Done #3');
+        $final = strpos($output, '3 of 3:');
+
+        $this->assertNotFalse($start1);
+        $this->assertNotFalse($done1);
+        $this->assertNotFalse($done3);
+        $this->assertNotFalse($final);
+
+        $this->assertGreaterThan($start1, $done1, 'Done #1 should come after Starting #1');
+        $this->assertGreaterThan($done3, $final, 'Final progress bar should come after Done #3');
+        $this->assertGreaterThan($start1, $final, 'Final progress bar should come after Starting #1');
     }
 
     private function runWorkerScript(string $body): string {
@@ -286,13 +290,9 @@ PHP;
         $file = tempnam(sys_get_temp_dir(), 'parallel_sdk_test_').'.php';
         file_put_contents($file, str_replace(['__AUTOLOAD__', '__BODY__'], [var_export($autoload, true), $body], $script));
 
-        fwrite(STDOUT, sprintf("[%f] WORKER SCRIPT START: %s\n", microtime(true), $this->getName()));
-
         $output = [];
         $exit = 0;
         exec(sprintf('timeout 10s %s %s 2>&1', escapeshellarg(PHP_BINARY), escapeshellarg($file)), $output, $exit);
-
-        fwrite(STDOUT, sprintf("[%f] WORKER SCRIPT END: %s (exit %d)\n", microtime(true), $this->getName(), $exit));
 
         unlink($file);
 

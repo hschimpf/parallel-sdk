@@ -96,8 +96,12 @@ trait ManagesTasks {
                     // process task using user Worker
                     : [ ...$task->getInput() ];
 
-                // connect worker to ProgressBar worker (handles both progress and console messages)
-                $worker->connectProgressBar($uuid, $GLOBALS['worker_thread_id'] ??= sprintf('%s@%s', $uuid, substr(md5(uniqid($worker_class, true)), 0, 16)));
+                // connect worker to Runner (handles both progress and console messages)
+                $worker->connectRunner(
+                    $uuid,
+                    $GLOBALS['worker_thread_id'] ??= sprintf('%s@%s', $uuid, substr(md5(uniqid($worker_class, true)), 0, 16)),
+                    $registered_worker->hasProgressEnabled(),
+                );
 
                 // notify that thread started
                 Channel::open(sprintf('starter@%s', $uuid))->send(true);
@@ -143,8 +147,11 @@ trait ManagesTasks {
 
             // init progressbar (it also handles console messages from this worker)
             $this->initProgressBar();
-            // connect worker to the Runner's progress bar / console output handler
-            $worker->connectProgressBar(fn(Commands\ParallelCommandMessage $message) => $this->processMessage($message));
+            // connect worker to the Runner's output handler
+            $worker->connectRunner(
+                fn(Commands\ParallelCommandMessage $message) => $this->processMessage($message),
+                progress_enabled: $registered_worker->hasProgressEnabled(),
+            );
 
             // check if worker has ProgressBar enabled
             if ($registered_worker->hasProgressEnabled() && !$this->progressBarStarted) {

@@ -26,14 +26,14 @@ When a worker calls `echo`/`fwrite` while the SDK is rendering a `Symfony\Compon
 
 ## Proposed public API
 
-`ParallelWorker` will expose two new methods (implemented in `HDSSolutions\Console\Parallel\Internals\Worker\CommunicatesWithProgressBarWorker`):
+`ParallelWorker` will expose two new methods (implemented in `HDSSolutions\Console\Parallel\Internals\Worker\CommunicatesWithRunner`):
 
 ```php
 public function write(string $message, bool $newline = false): void;
 public function writeln(string $message): void;
 ```
 
-They are intentionally **not** added to the `Contracts\ParallelWorker` interface to avoid a backwards-compatibility break. The intended usage is to extend `ParallelWorker`, which uses `CommunicatesWithProgressBarWorker` and therefore inherits the implementation.
+They are intentionally **not** added to the `Contracts\ParallelWorker` interface to avoid a backwards-compatibility break. The intended usage is to extend `ParallelWorker`, which uses `CommunicatesWithRunner` and therefore inherits the implementation.
 
 Usage inside a worker:
 
@@ -60,102 +60,83 @@ final class ExampleWorker extends ParallelWorker {
 - `setMessage()` changes a ProgressBar placeholder and is only visible inside the bar.
 - `write()`/`writeln()` emit a real console line above the bar.
 
-## Implementation outline
+## Implementation outline (final)
 
 ### 1. New command message
 
-`src/Internals/Commands/ProgressBar/WriteOutputMessage.php`
+`src/Internals/Commands/Output/WriteOutputMessage.php`
 
 ```php
 <?php declare(strict_types=1);
 
-namespace HDSSolutions\Console\Parallel\Internals\Commands\ProgressBar;
+namespace HDSSolutions\Console\Parallel\Internals\Commands\Output;
 
 use HDSSolutions\Console\Parallel\Internals\Commands\ParallelCommandMessage;
 
-final readonly class WriteOutputMessage extends ParallelCommandMessage {
+final class WriteOutputMessage extends ParallelCommandMessage {
 
-    public function __construct(string $message, bool $newline = true) {
-        parent::__construct('write_output', [ $message, $newline ]);
+    public function __construct(
+        public readonly string $message,
+        public readonly bool $newline = true,
+    ) {
+        parent::__construct(action: 'write_output', args: [ $message, $newline ]);
     }
 
 }
 ```
 
-The `write_output` action maps to a new `writeOutput()` method on `ProgressBarWorker` via `ListenEventsAndExecuteActions`.
+The `write_output` action is dispatched by `ListenEventsAndExecuteActions` to `Runner::writeOutput()`.
 
 ### 2. Worker class / trait
 
-`write()` and `writeln()` are implemented by the `CommunicatesWithProgressBarWorker` trait. `ParallelWorker` uses this trait, so any class extending `ParallelWorker` gets the methods automatically. No changes are required in `Contracts\ParallelWorker.php`.
+`write()` and `writeln()` are implemented by the `CommunicatesWithRunner` trait. `ParallelWorker` uses this trait, so any class extending `ParallelWorker` gets the methods automatically. No changes are required in `Contracts\ParallelWorker.php`.
 
 ### 3. Worker trait
 
-`src/Internals/Worker/CommunicatesWithProgressBarWorker.php`
+`src/Internals/Worker/CommunicatesWithRunner.php`
 
 ```php
 final public function write(string $message, bool $newline = false): void {
-    $message = new Commands\ProgressBar\WriteOutputMessage($message, $newline);
-
-    if ($this->progressbar_channel !== null) {
-        // progress bar is active: route through ProgressBarWorker
-        if (PARALLEL_EXT_LOADED) {
-            $this->progressbar_channel->send($message);
-        } else {
-            ($this->progressbar_channel)($message);
-        }
-
-        return;
-    }
-
-    if ($this->console_channel !== null) {
-        // fallback: route to Runner/ConsoleWorker console output
-        if (PARALLEL_EXT_LOADED) {
-            $this->console_channel->send($message);
-        } else {
-            ($this->console_channel)($message);
-        }
-
-        return;
-    }
-
-    // last resort: no coordinator available
-    fwrite(STDERR, $message.($newline ? PHP_EOL : ''));
+    $this->sendOutputMessage(new Commands\Output\WriteOutputMessage($message, $newline));
 }
 
 final public function writeln(string $message): void {
     $this->write($message, true);
 }
+
+private function sendOutputMessage(Commands\Output\WriteOutputMessage $message): void {
+    if ($this->runner_channel !== null) {
+        if (PARALLEL_EXT_LOADED) {
+            $this->runner_channel->send($message);
+        } else {
+            ($this->runner_channel)($message);
+        }
+
+        return;
+    }
+
+    // fallback when no coordinator is available: write to a fresh stderr stream
+    $stream = fopen('php://stderr', 'w');
+    if ($stream !== false) {
+        fwrite($stream, $message->args[0].($message->args[1] ? PHP_EOL : ''));
+        fclose($stream);
+    }
+}
 ```
 
 Notes:
 
-- If a progress bar is active, the message is serialized through the existing channel to the `ProgressBarWorker` thread.
-- If no progress bar is active but a console channel is connected, the message is routed to `Runner` (or a console worker it spawned).
-- If neither is available, the worker writes directly to `STDERR` as a last resort.
+- Every worker is connected to the `Runner` main channel, so `runner_channel` is always set.
+- If the channel cannot be established, the worker writes directly to a fresh `php://stderr` stream.
 
-### 4. ProgressBarWorker
+### 4. Runner-owned output
 
-`src/Internals/ProgressBarWorker.php`
-
-```php
-private function writeOutput(string $message, bool $newline = true): void {
-    $this->progressBar->clear();
-    $this->output->write($message, $newline);
-    $this->progressBar->display();
-}
-```
-
-This performs the exact sequence described in the issue: hide the bar, print the message, then redraw the bar so it recalculates its cursor position.
-
-### 5. ProgressBarWorker trait
-
-`src/Internals/ProgressBarWorker/HasProgressBar.php`
-
-Store the same `OutputInterface` that `ProgressBar` will use. `ProgressBar` switches a `ConsoleOutput` to its error output, so both the bar and messages end up on `stderr`:
+The `Runner` thread owns the Symfony `ProgressBar` and the output stream. `src/Internals/Runner/HasProgressBar.php` creates the `ProgressBar` on a `StreamOutput` tied to `php://stderr`:
 
 ```php
-use Symfony\Component\Console\Output\ConsoleOutput;
+use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Output\StreamOutput;
 
 trait HasProgressBar {
 
@@ -164,7 +145,8 @@ trait HasProgressBar {
     private OutputInterface $output;
 
     private function createProgressBar(): void {
-        $this->output = (new ConsoleOutput())->getErrorOutput();
+        // use a fresh stderr stream owned by this thread
+        $this->output = new StreamOutput(fopen('php://stderr', 'w'));
         $this->progressBar = new ProgressBar($this->output);
 
         // existing configuration stays unchanged
@@ -172,10 +154,10 @@ trait HasProgressBar {
         $this->progressBar->setRedrawFrequency(100);
         $this->progressBar->minSecondsBetweenRedraws(0.1);
         $this->progressBar->maxSecondsBetweenRedraws(0.2);
-        $this->progressBar->setFormat(format:
+        $this->progressBar->setFormat(
             "%current% of %max%: %message%\n".
             "[%bar%] %percent:3s%%\n".
-            "elapsed: %elapsed:6s%, remaining: %remaining:-6s%, %items_per_second% items/s"."...".
+            "elapsed: %elapsed:6s%, remaining: %remaining:-6s%, %items_per_second% items/s".(PARALLEL_EXT_LOADED ? "\n" : ",").
             "memory: %threads_memory%\n");
 
         $this->progressBar->setMessage('Starting...');
@@ -186,108 +168,47 @@ trait HasProgressBar {
 }
 ```
 
-`ProgressBar` receives the `stderr` `OutputInterface` directly, so both the bar and `write()` messages render on `stderr`.
-
-### 6. Sequential fallback
-
-`src/Internals/Runner/ManagesTasks.php`
-
-The closures that forward messages to local handlers are currently typed as `ProgressBarActionMessage`. They need to accept any `ParallelCommandMessage`:
+`src/Internals/Runner/HasSharedProgressBar.php` processes the `write_output`, `stats_report`, and `progress_bar_action` messages directly in the `Runner` thread:
 
 ```php
-// for workers with a progress bar
-$worker->connectProgressBar(fn(Commands\ParallelCommandMessage $message) => $this->progressBar->processMessage($message));
-
-// for workers without a progress bar
-$worker->connectConsole(fn(Commands\ParallelCommandMessage $message) => $this->writeOutput($message));
-```
-
-`Runner::writeOutput()` would simply write to its local `ConsoleOutput`'s error output (no `clear()`/`display()` needed when no progress bar is active).
-
-### 7. Fallback for workers without a progress bar
-
-For workers that do **not** call `withProgress()`, `write()` should still be coordinated so messages are not lost in a multi-threaded run. `Runner` spawns a dedicated `ConsoleWorker` thread that owns the fallback `ConsoleOutput`; `ParallelWorker` routes messages to it when no progress bar channel is connected.
-
-Design:
-
-- `Runner` creates a dedicated console output channel (e.g. `ConsoleWorker::class.'@'.$uuid`) and spawns a `ConsoleWorker` thread.
-- `ConsoleWorker` listens on that channel and writes each `WriteOutputMessage` to the `stderr` `OutputInterface` from its own `ConsoleOutput`.
-- `ParallelWorker` connects to the console channel via `connectConsole(string $uuid)` when it starts.
-- In sequential fallback, `ManagesTasks` passes a closure to `connectConsole()` that writes through `Runner`'s own `ConsoleOutput`.
-
-```php
-final public function write(string $message, bool $newline = false): void {
-    $message = new Commands\ProgressBar\WriteOutputMessage($message, $newline);
-
-    if ($this->progressbar_channel !== null) {
-        // route through ProgressBarWorker
-        if (PARALLEL_EXT_LOADED) {
-            $this->progressbar_channel->send($message);
-        } else {
-            ($this->progressbar_channel)($message);
-        }
-
-        return;
-    }
-
-    if ($this->console_channel !== null) {
-        // route to ConsoleWorker fallback
-        if (PARALLEL_EXT_LOADED) {
-            $this->console_channel->send($message);
-        } else {
-            ($this->console_channel)($message);
-        }
-
-        return;
-    }
-
-    // last resort
-    fwrite(STDERR, $message.($newline ? PHP_EOL : ''));
-}
-```
-
-`connectConsole(string $uuid)` (or a closure in sequential mode) sets `$this->console_channel`, analogous to `connectProgressBar()`.
-
-### 8. ConsoleWorker
-
-`src/Internals/ConsoleWorker.php`
-
-A new worker thread that owns the fallback output and listens for `WriteOutputMessage`s:
-
-```php
-<?php declare(strict_types=1);
-
-namespace HDSSolutions\Console\Parallel\Internals;
-
-use HDSSolutions\Console\Parallel\Internals\Commands\ParallelCommandMessage;
-use Symfony\Component\Console\Output\ConsoleOutput;
-use Symfony\Component\Console\Output\OutputInterface;
-
-final class ConsoleWorker {
-    use Common\ListenEventsAndExecuteActions;
-
-    private OutputInterface $output;
-
-    public function __construct(
-        private readonly string $uuid,
-    ) {
-        // open the console output channel
-        // e.g. TwoWayChannel::make(self::class.'@'.$uuid);
-        $this->output = (new ConsoleOutput())->getErrorOutput();
-    }
-
-    public function afterListening(): void {
-        // close the console output channel
-    }
-
-    private function writeOutput(string $message, bool $newline = true): void {
+private function writeOutput(string $message, bool $newline = true): void {
+    if ($this->progressBarStarted) {
+        $this->progressBar->clear();
         $this->output->write($message, $newline);
+        $this->progressBar->display();
+
+        return;
     }
 
+    $this->output->write($message, $newline);
 }
 ```
 
-`Runner` creates the channel and starts this thread in the same way it starts `ProgressBarWorker`.
+This performs the exact sequence described in the issue: hide the bar, print the message, then redraw the bar so it recalculates its cursor position.
+
+### 5. Connect every worker to the Runner
+
+`src/Internals/Runner/ManagesTasks.php` ensures every worker gets a channel to the `Runner`:
+
+```php
+// init progressbar (it also handles console messages from this worker)
+$this->initProgressBar();
+
+// connect worker to the Runner's output handler
+$worker->connectRunner(fn(Commands\ParallelCommandMessage $message) => $this->processMessage($message));
+
+// check if worker has ProgressBar enabled
+if ($registered_worker->hasProgressEnabled() && !$this->progressBarStarted) {
+    // register worker
+    $this->registerProgressBar($worker_class, $registered_worker->getSteps());
+}
+```
+
+In threaded mode `connectRunner()` opens the `Runner` main channel; in sequential mode it stores the closure that dispatches messages back into `Runner::processMessage()`.
+
+### 6. No separate coordinator threads
+
+The original RFC considered a separate `ProgressBarWorker` thread and a `ConsoleWorker` thread for the fallback. The final implementation keeps the `ProgressBar` and `StreamOutput` inside the `Runner` thread and routes all worker messages through the existing `Runner` channel. This removes a persistent child-thread lifetime issue and avoids sharing stream resources across threads.
 
 ## Behaviour
 
@@ -295,8 +216,8 @@ final class ConsoleWorker {
 
 When `write()` is called in a worker that has `withProgress()` enabled:
 
-1. The worker thread sends a `WriteOutputMessage` through the progress bar channel.
-2. The `ProgressBarWorker` thread receives it, calls `clear()` to erase the bar, writes the message line to `stderr` via the same `OutputInterface`, then calls `display()` to redraw the bar below the message.
+1. The worker thread sends a `WriteOutputMessage` through the `Runner` main channel.
+2. The `Runner` thread receives it, calls `clear()` to erase the bar, writes the message line to `stderr` via the same `OutputInterface`, then calls `display()` to redraw the bar below the message.
 
 Because all ProgressBar actions are already processed sequentially through the channel, the `clear`/`write`/`display` sequence is atomic with respect to other bar updates.
 
@@ -304,8 +225,8 @@ Because all ProgressBar actions are already processed sequentially through the c
 
 When `write()` is called in a worker that does **not** have `withProgress()` enabled:
 
-1. The worker thread sends a `WriteOutputMessage` through the console fallback channel.
-2. The `ConsoleWorker` thread receives it and writes the message line to `stderr`.
+1. The worker thread still sends a `WriteOutputMessage` through the `Runner` main channel.
+2. The `Runner` thread receives it and writes the message line directly to the `stderr` `OutputInterface`.
 
 There is no `clear()`/`display()` because no progress bar is active.
 
@@ -358,7 +279,7 @@ Finished task #1
 
 ## Backwards compatibility
 
-- `write()` and `writeln()` are added to the `ParallelWorker` abstract class via the `CommunicatesWithProgressBarWorker` trait, not to the `Contracts\ParallelWorker` interface. This avoids a BC break for any code that implements the interface directly.
+- `write()` and `writeln()` are added to the `ParallelWorker` abstract class via the `CommunicatesWithRunner` trait, not to the `Contracts\ParallelWorker` interface. This avoids a BC break for any code that implements the interface directly.
 - No existing methods are changed or removed.
 
 ## Alternatives considered
@@ -381,9 +302,10 @@ Finished task #1
 
 - **Naming:** Use Symfony `OutputInterface` naming: `write()` + `writeln()`.
 - **Memory stats:** Do not update memory stats on `write()`.
-- **Output stream for progress-bar workers:** Use the same `stderr` stream as `ProgressBar` for messages. `ProgressBar` switches a `ConsoleOutput` to its error output; we use that same `OutputInterface` for `write()`.
+- **Output stream:** Use a single `stderr` `StreamOutput` for the `ProgressBar` and messages. `ProgressBar` and `write()` output are emitted through the same `OutputInterface` so `clear()`/`write()`/`display()` work as Symfony intended.
+- **Coordinator:** The `Runner` thread owns the `ProgressBar` and the `StreamOutput`. All worker messages (including `write_output`) are routed through the existing `Runner` channel; no separate `ProgressBarWorker` or `ConsoleWorker` threads are spawned.
 - **Output injection:** Out of scope for this RFC.
-- **Fallback:** For workers without a progress bar, route messages to the `stderr` `OutputInterface` from a `ConsoleOutput` owned by a `ConsoleWorker` thread spawned by `Runner`. A last-resort `fwrite(STDERR)` remains only when no coordinator is available.
+- **Fallback:** If a worker cannot connect to the `Runner` channel, it opens a fresh `php://stderr` stream and writes the message directly.
 
 ## Known caveats
 
@@ -391,6 +313,7 @@ Finished task #1
 
 ## Recommended next steps
 
-1. Implement the approved design.
-2. Add PHPUnit tests for both the progress-bar path and the non-progress-bar fallback path.
-3. Update `README.md` to document `write()`/`writeln()`.
+- [x] Implement the approved design.
+- [x] Add PHPUnit tests for both the progress-bar path and the non-progress-bar path.
+- [x] Update `README.md` to document `write()`/`writeln()`.
+- [x] Rename `CommunicatesWithProgressBarWorker` to a name that reflects both progress-bar and console-message responsibilities (e.g. `CommunicatesWithRunner`).

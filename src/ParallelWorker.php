@@ -6,7 +6,7 @@ use RuntimeException;
 use Throwable;
 
 abstract class ParallelWorker implements Contracts\ParallelWorker {
-    use Internals\Worker\CommunicatesWithProgressBarWorker;
+    use Internals\Worker\CommunicatesWithRunner;
 
     /**
      * @var int Current Worker state

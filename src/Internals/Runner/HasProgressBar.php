@@ -24,7 +24,10 @@ trait HasProgressBar {
     private OutputInterface $output;
 
     private function createProgressBar(): void {
-        // use a fresh stderr stream owned by this thread
+        // Use a fresh stderr stream owned by this thread. StreamOutput is used instead of
+        // ConsoleOutput because ConsoleOutput would wrap two streams and ProgressBar would
+        // only write to the error output; a single StreamOutput on php://stderr is simpler
+        // and keeps the ProgressBar and worker messages on the same stream.
         $this->output = new StreamOutput(fopen('php://stderr', 'w'));
         $this->progressBar = new ProgressBar($this->output);
 
