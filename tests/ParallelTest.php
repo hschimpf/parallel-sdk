@@ -5,6 +5,7 @@ namespace HDSSolutions\Console\Tests;
 use HDSSolutions\Console\Parallel\Internals\Worker;
 use HDSSolutions\Console\Parallel\RegisteredWorker;
 use HDSSolutions\Console\Parallel\Scheduler;
+use HDSSolutions\Console\Tests\Workers\Writer;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Throwable;
@@ -275,19 +276,8 @@ if (extension_loaded('parallel')) {
     parallel\bootstrap(__AUTOLOAD__);
 }
 
-use HDSSolutions\Console\Parallel\ParallelWorker;
 use HDSSolutions\Console\Parallel\Scheduler;
-
-final class Writer extends ParallelWorker {
-    protected function process(int $n = 0): int {
-        $this->setMessage(sprintf('Task #%d', $n));
-        $this->writeln(sprintf('Starting #%d', $n));
-        $this->writeln(sprintf('Done #%d', $n));
-        $this->advance();
-
-        return $n;
-    }
-}
+use HDSSolutions\Console\Tests\Workers\Writer;
 
 __BODY__
 PHP;
@@ -299,15 +289,16 @@ PHP;
 
         $output = [];
         $exit = 0;
-        exec(sprintf('%s %s 2>&1', escapeshellarg(PHP_BINARY), escapeshellarg($file)), $output, $exit);
+        exec(sprintf('timeout 10s %s %s 2>&1', escapeshellarg(PHP_BINARY), escapeshellarg($file)), $output, $exit);
 
         fwrite(STDOUT, sprintf("[%f] WORKER SCRIPT END: %s (exit %d)\n", microtime(true), $this->getName(), $exit));
 
         unlink($file);
 
-        $this->assertSame(0, $exit, 'Worker script exited with an error');
+        $combined = implode("\n", $output);
+        $this->assertSame(0, $exit, $combined ?: 'Worker script exited with an error');
 
-        return implode("\n", $output);
+        return $combined;
     }
 
 }
