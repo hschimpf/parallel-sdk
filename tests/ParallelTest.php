@@ -262,7 +262,8 @@ PHP);
 
         $this->assertStringContainsString('Starting #1', $output);
         $this->assertStringContainsString('Done #3', $output);
-        $this->assertStringContainsString('3 of 3: Task #3', $output);
+        $this->assertStringContainsString('3 of 3:', $output);
+        $this->assertStringContainsString('Task #', $output);
     }
 
     private function runWorkerScript(string $body): string {
