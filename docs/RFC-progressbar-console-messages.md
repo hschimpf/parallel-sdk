@@ -1,6 +1,8 @@
 # RFC: Console message output from workers while a ProgressBar is active
 
-**Status:** Proposed
+**Status:** Implemented in PR #28
+
+> **Note:** The final implementation keeps the `ProgressBar` and `StreamOutput` inside the `Runner` thread instead of spawning a separate `ProgressBarWorker`/`ConsoleWorker`, because routing everything through the existing `Runner` channel proved simpler and avoided the CI deadlocks seen during development. The public API and behavior described below remain unchanged.
 
 ## Problem
 
