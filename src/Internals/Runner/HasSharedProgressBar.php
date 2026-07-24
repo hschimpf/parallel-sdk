@@ -2,67 +2,120 @@
 
 namespace HDSSolutions\Console\Parallel\Internals\Runner;
 
-use HDSSolutions\Console\Parallel\Internals;
-use HDSSolutions\Console\Parallel\Internals\Communication\TwoWayChannel;
-use parallel\Channel;
-use parallel\Events\Event;
-use parallel\Future;
-use parallel;
+use Symfony\Component\Console\Helper\Helper;
 
 trait HasSharedProgressBar {
 
-    /**
-     * @var Future|Internals\ProgressBarWorker Instance of the ProgressBar worker
-     */
-    private Future|Internals\ProgressBarWorker $progressBar;
+    use HasProgressBar;
 
     /**
-     * @var bool Flag to identify if ProgressBar is already started
+     * @var array Memory usage between threads
      */
-    private bool $progressbar_started = false;
+    private array $threads_memory = [
+        'current' => [ '__main__' => 0 ],
+        'peak'    => [ '__main__' => 0 ],
+    ];
 
     /**
-     * @var TwoWayChannel|null Channel of communication with the ProgressBar worker
+     * @var array Total of items processed per second
      */
-    private ?TwoWayChannel $progressbar_channel = null;
+    private array $items = [];
+
+    /**
+     * @var bool Flag to identify if the ProgressBar instance is initialized
+     */
+    private bool $progressbar_initialized = false;
 
     private function initProgressBar(): void {
-        // init ProgressBar worker, only if not already working
-        $this->progressBar ??= PARALLEL_EXT_LOADED
-            // create a ProgressBarWorker instance inside a thread
-            ? parallel\run(static function(string $uuid): void {
-                // create ProgressBarWorker instance
-                $progressBar = new Internals\ProgressBarWorker($uuid);
-                // listen for events
-                $progressBar->listen();
-            }, [ $this->uuid ])
+        if ($this->progressbar_initialized) return;
 
-            // create a ProgressBar instance for non-threaded environment
-            : new Internals\ProgressBarWorker($this->uuid);
-
-        // check if progressbar is already started, or we are on a non-threaded environment
-        if ($this->progressbar_started || ! PARALLEL_EXT_LOADED) return;
-
-        // open communication channel with the ProgressBar worker
-        while ($this->progressbar_channel === null) {
-            // open channel to communicate with the ProgressBar worker instance
-            try { $this->progressbar_channel = TwoWayChannel::open(Internals\ProgressBarWorker::class.'@'.$this->uuid);
-            // wait 1ms if channel does not exist yet and retry
-            } catch (Channel\Error\Existence) { usleep(1_000); }
-        }
-
-        // wait until ProgressBar worker starts
-        $this->progressbar_channel->receive();
-        $this->progressbar_started = true;
+        $this->createProgressBar();
+        $this->progressbar_initialized = true;
     }
 
     private function stopProgressBar(): void {
-        if (! PARALLEL_EXT_LOADED || ! $this->progressbar_started) return;
+        // finish the ProgressBar if it was started so the terminal state is clean
+        if ($this->progressbar_initialized && $this->progressBarStarted) {
+            $this->progressBar->finish();
+        }
+    }
 
-        // stop ProgressBar worker instance
-        $this->progressbar_channel->send(Event\Type::Close);
-        // wait until ProgressBar instance shutdowns
-        $this->progressbar_channel->receive();
+    private function registerProgressBar(string $worker, int $steps = 0): bool {
+        if (!$this->progressBarStarted) {
+            $this->progressBar->start($steps);
+            $this->progressBarStarted = true;
+
+            return true;
+        }
+
+        $this->progressBar->setMaxSteps($steps);
+
+        return true;
+    }
+
+    private function progressBarAction(string $action, array $args): void {
+        // ignore progress actions until the bar is actually started
+        if (!$this->progressBarStarted) return;
+
+        // redirect action to ProgressBar instance
+        $this->progressBar->$action(...$args);
+
+        if ($action === 'advance') {
+            // count processed item
+            $this->items[ time() ] = ($this->items[ time() ] ?? 0) + (int) array_shift($args);
+            // update ProgressBar items per second report
+            $this->progressBar->setMessage($this->getItemsPerSecond(), 'items_per_second');
+        }
+    }
+
+    private function writeOutput(string $message, bool $newline = true): void {
+        if ($this->progressBarStarted) {
+            $this->progressBar->clear();
+            $this->output->write($message, $newline);
+            $this->progressBar->display();
+
+            return;
+        }
+
+        $this->output->write($message, $newline);
+    }
+
+    private function statsReport(string $worker_id, int $memory_usage): void {
+        // save memory usage of thread
+        $this->threads_memory['current'][$worker_id] = $memory_usage;
+        // update peak memory usage
+        if ($this->threads_memory['current'][$worker_id] > ($this->threads_memory['peak'][$worker_id] ?? 0)) {
+            $this->threads_memory['peak'][$worker_id] = $this->threads_memory['current'][$worker_id];
+        }
+
+        if (!$this->progressBarStarted) return;
+
+        // update ProgressBar memory report
+        $this->progressBar->setMessage($this->getMemoryUsage(), 'threads_memory');
+    }
+
+    private function getMemoryUsage(): string {
+        // main memory used
+        $main = Helper::formatMemory($this->threads_memory['current']['__main__']);
+        // total memory used (sum of all threads)
+        $total = Helper::formatMemory($total_raw = array_sum($this->threads_memory['current']));
+        // average of each thread
+        $average = Helper::formatMemory((int) ($total_raw / (($count = count($this->threads_memory['current']) - 1) > 0 ? $count : 1)));
+        // peak memory usage
+        $peak = Helper::formatMemory(array_sum($this->threads_memory['peak']));
+
+        return "$main, threads: {$count}x ~$average, Σ $total ↑ $peak";
+    }
+
+    private function getItemsPerSecond(): string {
+        // check for empty list
+        if ($this->items === []) return '0';
+
+        // keep only last 15s for average
+        $this->items = array_slice($this->items, -15, preserve_keys: true);
+
+        // return the average of items processed per second
+        return '~'.number_format(floor(array_sum($this->items) / count($this->items) * 100) / 100, 2);
     }
 
 }

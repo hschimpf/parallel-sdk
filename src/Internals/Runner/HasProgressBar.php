@@ -1,9 +1,10 @@
 <?php declare(strict_types=1);
 
-namespace HDSSolutions\Console\Parallel\Internals\ProgressBarWorker;
+namespace HDSSolutions\Console\Parallel\Internals\Runner;
 
 use Symfony\Component\Console\Helper\ProgressBar;
-use Symfony\Component\Console\Output\ConsoleOutput;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Output\StreamOutput;
 
 trait HasProgressBar {
 
@@ -17,8 +18,18 @@ trait HasProgressBar {
      */
     private bool $progressBarStarted = false;
 
+    /**
+     * @var OutputInterface Output stream used for both the ProgressBar and messages
+     */
+    private OutputInterface $output;
+
     private function createProgressBar(): void {
-        $this->progressBar = new ProgressBar(new ConsoleOutput);
+        // Use a fresh stderr stream owned by this thread. StreamOutput is used instead of
+        // ConsoleOutput because ConsoleOutput would wrap two streams and ProgressBar would
+        // only write to the error output; a single StreamOutput on php://stderr is simpler
+        // and keeps the ProgressBar and worker messages on the same stream.
+        $this->output = new StreamOutput(fopen('php://stderr', 'w'));
+        $this->progressBar = new ProgressBar($this->output);
 
         // configure ProgressBar settings
         $this->progressBar->setBarWidth(80);

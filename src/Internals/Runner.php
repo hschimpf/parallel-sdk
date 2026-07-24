@@ -208,12 +208,7 @@ final class Runner {
         $worker->withProgress(steps: $steps);
 
         $this->initProgressBar();
-
-        $this->progressbar_channel->send(new Commands\ProgressBar\ProgressBarRegistrationMessage(
-            worker: $worker->getWorkerClass(),
-            steps:  $steps,
-        ));
-        $this->progressbar_channel->receive();
+        $this->registerProgressBar($worker->getWorkerClass(), $steps);
 
         return $this->send(true);
     }
@@ -226,12 +221,8 @@ final class Runner {
 
         $this->send($this->hasPendingTasks(), eater: true);
 
-        if ($this->progressbar_started) {
-            //
-            $this->progressbar_channel->send(new Commands\ProgressBar\StatsReportMessage(
-                worker_id:    '__main__',
-                memory_usage: memory_get_usage(),
-            ));
+        if ($this->progressbar_initialized) {
+            $this->statsReport('__main__', memory_get_usage());
         }
     }
 

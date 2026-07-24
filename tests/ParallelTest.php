@@ -5,6 +5,7 @@ namespace HDSSolutions\Console\Tests;
 use HDSSolutions\Console\Parallel\Internals\Worker;
 use HDSSolutions\Console\Parallel\RegisteredWorker;
 use HDSSolutions\Console\Parallel\Scheduler;
+use HDSSolutions\Console\Tests\Workers\Writer;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Throwable;
@@ -224,6 +225,81 @@ final class ParallelTest extends TestCase {
         Scheduler::removeAllTasks();
 
         $this->assertGreaterThanOrEqual(1, time() - $start);
+    }
+
+    public function testThatWorkerCanWriteMessagesWithoutProgressBar(): void {
+        $output = $this->runWorkerScript(<<<'PHP'
+Scheduler::using(Writer::class);
+foreach (range(1, 3) as $i) {
+    Scheduler::runTask($i);
+}
+Scheduler::awaitTasksCompletion();
+PHP);
+
+        $this->assertStringContainsString('Starting #1', $output);
+        $this->assertStringContainsString('Starting #2', $output);
+        $this->assertStringContainsString('Starting #3', $output);
+    }
+
+    public function testThatWorkerCanWriteMessagesWithProgressBar(): void {
+        $output = $this->runWorkerScript(<<<'PHP'
+Scheduler::using(Writer::class)->withProgress(steps: 3);
+foreach (range(1, 3) as $i) {
+    Scheduler::runTask($i);
+}
+Scheduler::awaitTasksCompletion();
+PHP);
+
+        $this->assertStringContainsString('Starting #1', $output);
+        $this->assertStringContainsString('Done #3', $output);
+        $this->assertStringContainsString('3 of 3:', $output);
+        $this->assertStringContainsString('Task #', $output);
+
+        $start1 = strpos($output, 'Starting #1');
+        $done1 = strpos($output, 'Done #1');
+        $done3 = strpos($output, 'Done #3');
+        $final = strpos($output, '3 of 3:');
+
+        $this->assertNotFalse($start1);
+        $this->assertNotFalse($done1);
+        $this->assertNotFalse($done3);
+        $this->assertNotFalse($final);
+
+        $this->assertGreaterThan($start1, $done1, 'Done #1 should come after Starting #1');
+        $this->assertGreaterThan($done3, $final, 'Final progress bar should come after Done #3');
+        $this->assertGreaterThan($start1, $final, 'Final progress bar should come after Starting #1');
+    }
+
+    private function runWorkerScript(string $body): string {
+        $autoload = __DIR__.'/../vendor/autoload.php';
+
+        $script = <<<'PHP'
+<?php declare(strict_types=1);
+require __AUTOLOAD__;
+
+if (extension_loaded('parallel')) {
+    parallel\bootstrap(__AUTOLOAD__);
+}
+
+use HDSSolutions\Console\Parallel\Scheduler;
+use HDSSolutions\Console\Tests\Workers\Writer;
+
+__BODY__
+PHP;
+
+        $file = tempnam(sys_get_temp_dir(), 'parallel_sdk_test_').'.php';
+        file_put_contents($file, str_replace(['__AUTOLOAD__', '__BODY__'], [var_export($autoload, true), $body], $script));
+
+        $output = [];
+        $exit = 0;
+        exec(sprintf('timeout 10s %s %s 2>&1', escapeshellarg(PHP_BINARY), escapeshellarg($file)), $output, $exit);
+
+        unlink($file);
+
+        $combined = implode("\n", $output);
+        $this->assertSame(0, $exit, $combined ?: 'Worker script exited with an error');
+
+        return $combined;
     }
 
 }
