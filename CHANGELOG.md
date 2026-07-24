@@ -6,10 +6,10 @@ All notable changes to **parallel-sdk** are documented in this file. The format 
 
 ### Added
 - `ParallelWorker::write()` and `ParallelWorker::writeln()` methods to emit console messages from workers without them being overwritten by the ProgressBar.
-- `WriteOutputMessage` command to route `write()`/`writeln()` calls through the existing channel infrastructure.
+- `WriteOutputMessage` command to route `write()`/`writeln()` calls to the `Runner` coordinator.
 
 ### Changed
-- `ProgressBarWorker` now uses a shared `stderr` `OutputInterface` for both the ProgressBar and messages, so `clear()`/`write()`/`display()` work correctly together.
+- ProgressBar and console-message handling is now owned directly by the `Runner` thread on a `stderr` `OutputInterface`, so `clear()`/`write()`/`display()` work correctly together without extra coordinator threads.
 
 ## `3.0.0` – 2025-07-04
 
