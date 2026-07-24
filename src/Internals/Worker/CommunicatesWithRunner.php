@@ -20,8 +20,17 @@ trait CommunicatesWithRunner {
      */
     private bool $progress_enabled = false;
 
+    /**
+     * @var string|null UUID used to open the Runner channel
+     */
+    private ?string $runner_uuid = null;
+
     final public function connectRunner(string | Closure $uuid, string $identifier = null, bool $progress_enabled = false): bool {
         $this->progress_enabled = $progress_enabled;
+        if (is_string($uuid)) {
+            $this->runner_uuid = $uuid;
+        }
+
         if (! PARALLEL_EXT_LOADED) {
             $this->runner_channel = $uuid;
 
@@ -40,6 +49,26 @@ trait CommunicatesWithRunner {
         }
 
         return true;
+    }
+
+    final protected function getRunnerChannel(): TwoWayChannel {
+        if ($this->runner_channel instanceof TwoWayChannel) {
+            return $this->runner_channel;
+        }
+
+        $uuid = property_exists($this, 'uuid') ? $this->uuid : ($this->runner_uuid ?? null);
+        if ($uuid === null) {
+            throw new \RuntimeException('Cannot determine Runner UUID');
+        }
+
+        while ($this->runner_channel === null) {
+            // open channel to communicate with the Runner instance
+            try { $this->runner_channel = TwoWayChannel::open(Runner::class.'@'.$uuid);
+            // wait 1ms if channel does not exist yet and retry
+            } catch (Channel\Error\Existence) { usleep(1_000); }
+        }
+
+        return $this->runner_channel;
     }
 
     final public function setMessage(string $message, string $name = 'message'): void {
